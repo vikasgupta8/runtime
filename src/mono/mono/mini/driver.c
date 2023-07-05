@@ -1307,6 +1307,7 @@ mono_jit_exec (MonoDomain *domain, MonoAssembly *assembly, int argc, char *argv[
 {
 	int rv;
 	MONO_ENTER_GC_UNSAFE;
+	printf ("\nVIKAS_MONO_LOG :: mono_jit_exec ->  mono_jit_exec_internal\n");
 	rv = mono_jit_exec_internal (domain, assembly, argc, argv);
 	MONO_EXIT_GC_UNSAFE;
 	return rv;
@@ -1362,6 +1363,7 @@ mono_jit_exec_internal (MonoDomain *domain, MonoAssembly *assembly, int argc, ch
 		}
 		return res;
 	} else {
+		printf ("\nVIKAS_MONO_LOG :: mono_jit_exec_internal -> mono_runtime_run_main_checked start\n");
 		int res = mono_runtime_run_main_checked (method, argc, argv, error);
 		if (!is_ok (error)) {
 			MonoException *ex = mono_error_convert_to_exception (error);
@@ -1439,6 +1441,7 @@ static void main_thread_handler (gpointer user_data)
 		if (main_args->opts & MONO_OPT_PRECOMP)
 			mono_precompile_assemblies ();
 
+		printf ("\nVIKAS_MONO_LOG :: main_thread_handler ->  mono_jit_exec\n");
 		mono_jit_exec (main_args->domain, assembly, main_args->argc, main_args->argv);
 	}
 }
@@ -2544,6 +2547,7 @@ mono_main (int argc, char* argv[])
 
 	mono_set_defaults (mini_verbose_level, opt);
 
+	printf ("\nVIKAS_MONO_LOG :: mono_main -> mini_init\n");
 	domain = mini_init (argv [i]);
 
 	mono_gc_set_stack_end (&domain);
@@ -2644,6 +2648,7 @@ mono_main (int argc, char* argv[])
 		main_args.argv = argv + i;
 		main_args.opts = opt;
 		main_args.aot_options = aot_options;
+		printf ("\nVIKAS_MONO_LOG :: mono_main -> main_thread_handler\n");
 		main_thread_handler (&main_args);
 		mono_thread_manage_internal ();
 

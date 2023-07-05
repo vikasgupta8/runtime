@@ -90,7 +90,7 @@ HRESULT CordbAssembly::GetName(ULONG32 cchName, ULONG32* pcchName, WCHAR szName[
             m_pAssemblyName = m_dbgprot_decode_string_with_len(pReply->p, &pReply->p, pReply->end, &m_nAssemblyNameLen);
 
             char* c_mobile_symbols_path = getenv("MOBILE_SYMBOLS_PATH");
-            if (strlen(c_mobile_symbols_path) > 0) {
+            if (c_mobile_symbols_path && strlen(c_mobile_symbols_path) > 0) {
 
                 size_t size_path = strlen(m_pAssemblyName);
                 size_t pos_separator = 0;
@@ -141,8 +141,10 @@ HRESULT CordbAssembly::QueryInterface(REFIID id, _COM_Outptr_ void __RPC_FAR* __
 
 HRESULT CordbAssembly::GetProcess(ICorDebugProcess** ppProcess)
 {
+    printf("\nVIKAS_LOG_MONO :: CordbAssembly::GetProcess START");
     LOG((LF_CORDB, LL_INFO1000000, "CorDebugAssembly - GetProcess - IMPLEMENTED\n"));
     conn->GetProcess()->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
+    printf("\nVIKAS_LOG_MONO :: CordbAssembly::GetProcess END");
     return S_OK;
 }
 
@@ -256,8 +258,10 @@ HRESULT CordbModule::ResolveAssembly(mdToken tkAssemblyRef, ICorDebugAssembly** 
 
 HRESULT CordbModule::GetProcess(ICorDebugProcess** ppProcess)
 {
+    printf("\nVIKAS_LOG_MONO :: CordbModule::GetProcess START");
     LOG((LF_CORDB, LL_INFO100000, "CordbModule - GetProcess - IMPLEMENTED\n"));
     conn->GetProcess()->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
+    printf("\nVIKAS_LOG_MONO :: CordbModule::GetProcess END");
     return S_OK;
 }
 
@@ -397,6 +401,7 @@ HRESULT CordbModule::GetMetaDataInterface(REFIID riid, IUnknown** ppObj)
     }
     m_pRegMeta->QueryInterface(riid, (void**)ppObj);
     LOG((LF_CORDB, LL_INFO1000000, "CordbModule - GetMetaDataInterface - IMPLEMENTED\n"));
+
     return S_OK;
 }
 

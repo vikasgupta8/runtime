@@ -12,8 +12,10 @@ using namespace std;
 
 CordbAppDomain::CordbAppDomain(Connection* conn, CordbProcess* ppProcess) : CordbBaseMono(conn)
 {
+    printf("\nVIKAS_LOG_MONO :: CordbAppDomain::CordbAppDomain constructor START");
     pProcess = ppProcess;
     pProcess->AddAppDomain(this);
+    printf("\nVIKAS_LOG_MONO :: CordbAppDomain::CordbAppDomain constructor END");
 }
 
 HRESULT CordbAppDomain::Stop(DWORD dwTimeoutIgnored)
@@ -127,6 +129,7 @@ HRESULT
 CordbAppDomain::EnumerateAssemblies(ICorDebugAssemblyEnum** ppAssemblies)
 {
     LOG((LF_CORDB, LL_INFO100000, "CordbAppDomain - EnumerateAssemblies - NOT IMPLEMENTED\n"));
+    printf("\nVIKAS_LOG_MONO :: CordbAppDomain::EnumerateAssemblies not implemented.");
     return E_NOTIMPL;
 }
 
@@ -234,6 +237,10 @@ HRESULT STDMETHODCALLTYPE CordbAppDomainEnum::Next(ULONG celt, ICorDebugAppDomai
     {
         if (current_pos >= pProcess->m_pAddDomains->GetCount())
         {
+    	    printf("\nVIKAS_LOG_MONO :: CordbAppDomainEnum::Next current_pos = %d",current_pos);
+    	    printf("\nVIKAS_LOG_MONO :: CordbAppDomainEnum::Next count = %d",pProcess->m_pAddDomains->GetCount());
+    	    printf("\nVIKAS_LOG_MONO :: CordbAppDomainEnum::Next i = %d, celt = %d",i,celt);
+    	    printf("\nVIKAS_LOG_MONO :: CordbAppDomainEnum::Next END failure");
             *pceltFetched = 0;
             return S_FALSE;
         }
@@ -266,6 +273,7 @@ HRESULT STDMETHODCALLTYPE CordbAppDomainEnum::Clone(ICorDebugEnum** ppEnum)
 HRESULT STDMETHODCALLTYPE CordbAppDomainEnum::GetCount(ULONG* pcelt)
 {
     LOG((LF_CORDB, LL_INFO1000000, "CordbAppDomainEnum - GetCount - IMPLEMENTED\n"));
+    printf("\nVIKAS_LOG_MONO :: CordbAppDomainEnum::GetCount m_pAddDomains->GetCount() = %d",pProcess->m_pAddDomains->GetCount());
     *pcelt = pProcess->m_pAddDomains->GetCount();
     return S_OK;
 }

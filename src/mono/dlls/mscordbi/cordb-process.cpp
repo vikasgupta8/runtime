@@ -524,7 +524,20 @@ HRESULT CordbProcess::IsRunning(BOOL* pbRunning)
 HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueued)
 {
     // conn->process_packet_from_queue();
+    // Vikas impelemetation
+    ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
+    DWORD count = pReceivedPacketsToProcess->GetCount();
+    MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
+    printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
+
     *pbQueued = false;
+    
+    if (req)
+       *pbQueued = true;
+
+    if (count == 10)
+       *pbQueued = false;
+   
     LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - IMPLEMENTED\n"));
     return S_OK;
 }

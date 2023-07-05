@@ -136,18 +136,18 @@ add_library(mscordbi SHARED "${mscorbi_sources};${PROJECT_SOURCE_DIR}/../../mono
 set_source_files_properties(${PROJECT_SOURCE_DIR}/../../mono/component/debugger-protocol.c PROPERTIES LANGUAGE CXX)
 
 set(COREDBI_LIBRARIES
+    mdruntimerw-dbi
     utilcodestaticnohost
     mdruntime-dbi
     mdcompiler-dbi
-    mdruntimerw-dbi
     socket-dbi
     ${OS_LIBS}
 )
 
 if(CLR_CMAKE_HOST_UNIX)
     list(APPEND COREDBI_LIBRARIES
-        coreclrpal
         palrt
+        coreclrpal
         nativeresourcestring
     )
 endif()

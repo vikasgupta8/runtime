@@ -165,6 +165,7 @@ create_domain_objects (MonoDomain *domain)
 	HANDLE_FUNCTION_ENTER ();
 	ERROR_DECL (error);
 
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects START\n");
 	MonoStringHandle arg;
 	MonoVTable *string_vt;
 	MonoClassField *string_empty_fld;
@@ -177,8 +178,10 @@ create_domain_objects (MonoDomain *domain)
 	mono_error_assert_ok (error);
 	string_empty_fld = mono_class_get_field_from_name_full (mono_defaults.string_class, "Empty", NULL);
 	g_assert (string_empty_fld);
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects -> 2\n");
 	MonoStringHandle empty_str = mono_string_new_handle ("", error);
 	mono_error_assert_ok (error);
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects -> 3\n");
 	empty_str = mono_string_intern_checked (empty_str, error);
 	mono_error_assert_ok (error);
 	mono_field_static_set_value_internal (string_vt, string_empty_fld, MONO_HANDLE_RAW (empty_str));
@@ -188,6 +191,7 @@ create_domain_objects (MonoDomain *domain)
 	 * Create an instance early since we can't do it when there is no memory.
 	 */
 	arg = mono_string_new_handle ("Out of memory", error);
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects -> out_of_memory_ex\n");
 	mono_error_assert_ok (error);
 	domain->out_of_memory_ex = MONO_HANDLE_RAW (mono_exception_from_name_two_strings_checked (mono_defaults.corlib, "System", "OutOfMemoryException", arg, NULL_HANDLE_STRING, error));
 	mono_error_assert_ok (error);
@@ -196,6 +200,7 @@ create_domain_objects (MonoDomain *domain)
 	 * These two are needed because the signal handlers might be executing on
 	 * an alternate stack, and Boehm GC can't handle that.
 	 */
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects -> mono_string_new_handle\n");
 	arg = mono_string_new_handle ("A null value was found where an object instance was required", error);
 	mono_error_assert_ok (error);
 	domain->null_reference_ex = MONO_HANDLE_RAW (mono_exception_from_name_two_strings_checked (mono_defaults.corlib, "System", "NullReferenceException", arg, NULL_HANDLE_STRING, error));
@@ -206,6 +211,7 @@ create_domain_objects (MonoDomain *domain)
 	mono_error_assert_ok (error);
 
 	/* The ephemeron tombstone */
+	arg = mono_string_new_handle ("A null value was found where an object instance was required", error);
 	domain->ephemeron_tombstone = MONO_HANDLE_RAW (mono_object_new_handle (mono_defaults.object_class, error));
 	mono_error_assert_ok (error);
 
@@ -215,6 +221,7 @@ create_domain_objects (MonoDomain *domain)
 	 */
 	mono_class_init_internal (mono_class_create_array (mono_defaults.int_class, 1));
 	HANDLE_FUNCTION_RETURN ();
+	printf ("\nVIKAS_MONO_LOG :: create_domain_objects END\n");
 }
 
 /**
@@ -241,6 +248,7 @@ void
 mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoThreadAttachCB attach_cb, MonoError *error)
 {
 	HANDLE_FUNCTION_ENTER ();
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked START.\n");
 
 	MonoAppDomainHandle ad;
 
@@ -270,6 +278,7 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 		domain->domain = MONO_HANDLE_RAW (ad);
 	}
 
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> mono_thread_internal_attach\n");
 	mono_thread_internal_attach (domain);
 
 	mono_component_diagnostics_server ()->init ();
@@ -284,21 +293,27 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 
 	mono_type_initialization_init ();
 
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> create_domain_objects\n");
 	if (!mono_runtime_get_no_exec ())
 		create_domain_objects (domain);
 
 	/* GC init has to happen after thread init */
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> mono_gc_init start\n");
 	mono_gc_init ();
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> mono_gc_init end\n");
 
 	if (!mono_runtime_get_no_exec ())
 		mono_runtime_install_appctx_properties ();
 
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> mono_locks_tracer_init\n");
 	mono_locks_tracer_init ();
 
 	/* mscorlib is loaded before we install the load hook */
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked -> mono_domain_fire_assembly_load\n");
 	mono_domain_fire_assembly_load (mono_alc_get_default (), mono_defaults.corlib->assembly, NULL, error);
 	goto_if_nok (error, exit);
 
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_init_checked END.\n");
 exit:
 	HANDLE_FUNCTION_RETURN ();
 }
@@ -855,6 +870,7 @@ static GENERATE_GET_CLASS_WITH_CACHE (appctx, "System", "AppContext")
 void
 mono_runtime_install_appctx_properties (void)
 {
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_install_appctx_properties START\n");
 	ERROR_DECL (error);
 	gpointer args [3];
 	int n_runtimeconfig_json_props = 0;
@@ -924,6 +940,7 @@ mono_runtime_install_appctx_properties (void)
 		runtime_config_cleanup_fn = NULL;
 		runtime_config_user_data = NULL;
 	}
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_install_appctx_properties END\n");
 }
 
 static const char *

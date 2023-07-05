@@ -1090,7 +1090,10 @@ typedef struct {
 static void
 fire_attach_profiler_events (MonoNativeThreadId tid)
 {
+	printf ("\nVIKAS_MONO_LOG :: fire_attach_profiler_events start\n");
+	printf ("\nVIKAS_MONO_LOG :: fire_attach_profiler_events -> MONO_PROFILER_RAISE (thread_started) start\n");
 	MONO_PROFILER_RAISE (thread_started, ((uintptr_t) tid));
+	printf ("\nVIKAS_MONO_LOG :: fire_attach_profiler_events -> MONO_PROFILER_RAISE (thread_started) end\n");
 
 	MonoThreadInfo *info = mono_thread_info_current ();
 
@@ -1108,6 +1111,7 @@ fire_attach_profiler_events (MonoNativeThreadId tid)
 		MONO_ROOT_SOURCE_HANDLE,
 		(gpointer)(gsize) tid,
 		"Handle Stack"));
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_internal_attach end\n");
 }
 
 static guint32 WINAPI
@@ -1304,6 +1308,7 @@ create_thread (MonoThread *thread, MonoInternalThread *internal, MonoThreadStart
 	gboolean ret;
 	gsize stack_set_size;
 
+	printf ("\nVIKAS_MONO_LOG :: create_thread start\n");
 	if (flags & MONO_THREAD_CREATE_FLAGS_THREADPOOL) {
 		g_assert (!(flags & MONO_THREAD_CREATE_FLAGS_DEBUGGER));
 		g_assert (!(flags & MONO_THREAD_CREATE_FLAGS_FORCE_CREATE));
@@ -1356,6 +1361,7 @@ create_thread (MonoThread *thread, MonoInternalThread *internal, MonoThreadStart
 	else
 		stack_set_size = 0;
 
+	printf ("\nVIKAS_MONO_LOG :: create_thread -> mono_thread_platform_create_thread\n");
 	if (!mono_thread_platform_create_thread (start_wrapper, start_info, &stack_set_size, &tid)) {
 		/* The thread couldn't be created, so set an exception */
 		mono_threads_lock ();
@@ -1397,6 +1403,7 @@ done:
 		g_free (start_info);
 	}
 
+	printf ("\nVIKAS_MONO_LOG :: create_thread end\n");
 	return ret;
 }
 
@@ -1437,6 +1444,7 @@ mono_threads_get_default_stacksize (void)
 MonoInternalThread*
 mono_thread_create_internal (MonoThreadStart func, gpointer arg, MonoThreadCreateFlags flags, MonoError *error)
 {
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_create_internal start\n");
 	MonoThread *thread;
 	MonoInternalThread *internal;
 	gboolean res;
@@ -1449,12 +1457,14 @@ mono_thread_create_internal (MonoThreadStart func, gpointer arg, MonoThreadCreat
 
 	LOCK_THREAD (internal);
 
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_create_internal -> create_thread\n");
 	res = create_thread (thread, internal, func, arg, 0, flags, error);
 	(void)res;
 
 	UNLOCK_THREAD (internal);
 
 	return_val_if_nok (error, NULL);
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_create_internal end\n");
 	return internal;
 }
 
@@ -1546,6 +1556,7 @@ mono_thread_internal_attach (MonoDomain *domain)
 	MonoThread *thread;
 	MonoThreadInfo *info;
 	MonoNativeThreadId tid;
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_internal_attach start\n");
 
 	if (mono_thread_internal_current_is_attached ()) {
 		/* Already attached */
@@ -1602,8 +1613,10 @@ mono_thread_internal_attach (MonoDomain *domain)
 	if (mono_thread_attach_cb)
 		mono_thread_attach_cb (MONO_NATIVE_THREAD_ID_TO_UINT (tid), info->stack_end);
 
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_internal_attach -> fire_attach_profiler_events\n");
 	fire_attach_profiler_events (tid);
 
+	printf ("\nVIKAS_MONO_LOG :: mono_thread_internal_attach end\n");
 	return thread;
 }
 

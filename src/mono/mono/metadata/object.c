@@ -2412,6 +2412,7 @@ do_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObject **ex
 
 	MONO_PROFILER_RAISE (method_begin_invoke, (method));
 
+	printf ("\nVIKAS_MONO_LOG :: do_runtime_invoke -> callbacks.runtime_invoke for method = %s\n",mono_method_get_full_name(method));
 	result = callbacks.runtime_invoke (method, obj, params, exc, error);
 
 	MONO_PROFILER_RAISE (method_end_invoke, (method));
@@ -2575,11 +2576,13 @@ mono_runtime_try_invoke_handle (MonoMethod *method, MonoObjectHandle obj, void *
 MonoObject*
 mono_runtime_invoke_checked (MonoMethod *method, void *obj, void **params, MonoError* error)
 {
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_invoke_checked start\n");
 	MONO_REQ_GC_UNSAFE_MODE;
 
 	if (mono_runtime_get_no_exec ())
 		g_error ("Invoking method '%s' when running in no-exec mode.\n", mono_method_full_name (method, TRUE));
 
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_invoke_checked -> do_runtime_invoke\n");
 	return do_runtime_invoke (method, obj, params, NULL, error);
 }
 
@@ -4102,6 +4105,7 @@ mono_runtime_run_main_checked (MonoMethod *method, int argc, char* argv[],
 {
 	error_init (error);
 	MonoArray *args = prepare_run_main (method, argc, argv);
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_run_main_checked -> mono_runtime_exec_main_checked\n");
 	return mono_runtime_exec_main_checked (method, args, error);
 }
 
@@ -4422,6 +4426,7 @@ static int
 do_exec_main_checked (MonoMethod *method, MonoArray *args, MonoError *error)
 {
 	MONO_REQ_GC_UNSAFE_MODE;
+	printf ("\nVIKAS_MONO_LOG :: do_exec_main_checked start\n");
 
 	gpointer pa [1];
 	int rval;
@@ -4433,6 +4438,7 @@ do_exec_main_checked (MonoMethod *method, MonoArray *args, MonoError *error)
 
 	/* FIXME: check signature of method */
 	if (mono_method_signature_internal (method)->ret->type == MONO_TYPE_I4) {
+		printf ("\nVIKAS_MONO_LOG :: do_exec_main_checked if \n");
 		MonoObject *res;
 		res = mono_runtime_invoke_checked (method, NULL, pa, error);
 		if (is_ok (error))
@@ -4441,7 +4447,9 @@ do_exec_main_checked (MonoMethod *method, MonoArray *args, MonoError *error)
 			rval = -1;
 		mono_environment_exitcode_set (rval);
 	} else {
+		printf ("\nVIKAS_MONO_LOG :: do_exec_main_checked -> mono_runtime_invoke_checked start\n");
 		mono_runtime_invoke_checked (method, NULL, pa, error);
+		printf ("\nVIKAS_MONO_LOG :: do_exec_main_checked -> mono_runtime_invoke_checked end \n");
 
 		if (is_ok (error))
 			rval = 0;
@@ -4449,6 +4457,7 @@ do_exec_main_checked (MonoMethod *method, MonoArray *args, MonoError *error)
 			rval = -1;
 		}
 	}
+	printf ("\nVIKAS_MONO_LOG :: do_exec_main_checked end\n");
 	return rval;
 }
 
@@ -4538,6 +4547,7 @@ mono_runtime_exec_main_checked (MonoMethod *method, MonoArray *args, MonoError *
 {
 	error_init (error);
 	prepare_thread_to_exec_main (method);
+	printf ("\nVIKAS_MONO_LOG :: mono_runtime_exec_main_checked -> do_exec_main_checked\n");
 	return do_exec_main_checked (method, args, error);
 }
 

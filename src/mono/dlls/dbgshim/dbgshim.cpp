@@ -90,7 +90,7 @@ HRESULT RunAndroidCmd(char* c_android_adb_path, LPCWSTR w_command_to_execute)
 // that can be supported cross-platform.
 //
 //-----------------------------------------------------------------------------
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CreateProcessForLaunch(
     _In_ LPWSTR lpCommandLine,
     _In_ BOOL bSuspendProcess,
@@ -99,6 +99,7 @@ CreateProcessForLaunch(
     _Out_ PDWORD pProcessId,
     _Out_ HANDLE *pResumeHandle)
 {
+    printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch START");
     PUBLIC_CONTRACT;
     PROCESS_INFORMATION processInfo;
     STARTUPINFOW startupInfo;
@@ -118,9 +119,10 @@ CreateProcessForLaunch(
             return ret;
         }
     }
-    else
+    else{
+        printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch setting MONO_ENV_OPTIONS");
         putenv("MONO_ENV_OPTIONS='--debugger-agent=transport=dt_socket,address=127.0.0.1:pid_based,server=n,suspend=y,loglevel=10,timeout=100000'");
-
+    }
     BOOL result = CreateProcessW(
         NULL,
         lpCommandLine,
@@ -152,17 +154,18 @@ CreateProcessForLaunch(
         *pResumeHandle = processInfo.hThread;
     }
 
+    printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch END");
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 ResumeProcess(
     _In_ HANDLE hResumeHandle)
 {
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CloseResumeHandle(
     _In_ HANDLE hResumeHandle)
 {
@@ -208,7 +211,7 @@ char* convertC(const WCHAR * wString)
 
 static IUnknown* pCordb = NULL;
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 RegisterForRuntimeStartup(
     _In_ DWORD dwProcessId,
     _In_ PSTARTUP_CALLBACK pfnCallback,
@@ -253,7 +256,7 @@ RegisterForRuntimeStartup(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 RegisterForRuntimeStartupEx(
     _In_ DWORD dwProcessId,
     _In_ LPCWSTR szApplicationGroupId,
@@ -264,14 +267,14 @@ RegisterForRuntimeStartupEx(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 UnregisterForRuntimeStartup(
     _In_ PVOID pUnregisterToken)
 {
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 GetStartupNotificationEvent(
     _In_ DWORD debuggeePID,
     _Out_ HANDLE* phStartupEvent)
@@ -279,7 +282,7 @@ GetStartupNotificationEvent(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 EnumerateCLRs(DWORD debuggeePID,
     _Out_ HANDLE** ppHandleArrayOut,
     _Out_ LPWSTR** ppStringArrayOut,
@@ -288,7 +291,7 @@ EnumerateCLRs(DWORD debuggeePID,
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CloseCLREnumeration(
     _In_ HANDLE* pHandleArray,
     _In_ LPWSTR* pStringArray,
@@ -297,7 +300,7 @@ CloseCLREnumeration(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CreateVersionStringFromModule(
     _In_ DWORD pidDebuggee,
     _In_ LPCWSTR szModuleName,
@@ -308,7 +311,7 @@ CreateVersionStringFromModule(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CreateDebuggingInterfaceFromVersionEx(
     _In_ int iDebuggerVersion,
     _In_ LPCWSTR szDebuggeeVersion,
@@ -317,7 +320,7 @@ CreateDebuggingInterfaceFromVersionEx(
     return S_OK;
 }
 
-MONO_API
+MONO_API DLLEXPORT
 HRESULT
 CreateDebuggingInterfaceFromVersion2(
     _In_ int iDebuggerVersion,
@@ -328,7 +331,7 @@ CreateDebuggingInterfaceFromVersion2(
     return S_OK;
 }
 
-MONO_API HRESULT
+MONO_API DLLEXPORT HRESULT
 CreateDebuggingInterfaceFromVersion(
     _In_ LPCWSTR szDebuggeeVersion,
     _Out_ IUnknown ** ppCordb)

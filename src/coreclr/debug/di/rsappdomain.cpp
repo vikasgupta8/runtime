@@ -473,6 +473,7 @@ void CordbAppDomain::PrepopulateAssembliesOrThrow()
 
 HRESULT CordbAppDomain::EnumerateAssemblies(ICorDebugAssemblyEnum **ppAssemblies)
 {
+    printf("\nVIKAS_LOG_CLR :: CordbAppDomain::EnumerateAssemblies START");
     HRESULT hr = S_OK;
     PUBLIC_API_BEGIN(this);
     {

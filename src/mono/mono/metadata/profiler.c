@@ -374,7 +374,9 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 			data.line = sp->line;
 			data.column = 0;
 
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_coverage_data calling callback start ...1... ");
 			cb (handle->prof, &data);
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_coverage_data calling callback end ...1... ");
 		}
 
 		g_free (source_files);
@@ -410,7 +412,9 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 				}
 			}
 
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_coverage_data calling callback start ...2... ");
 			cb (handle->prof, &data);
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_coverage_data calling callback end ...2... ");
 
 			g_free ((char *) data.file_name);
 		}
@@ -427,8 +431,11 @@ mono_profiler_coverage_instrumentation_enabled (MonoMethod *method)
 	for (MonoProfilerHandle handle = mono_profiler_state.profilers; handle; handle = handle->next) {
 		MonoProfilerCoverageFilterCallback cb = (MonoProfilerCoverageFilterCallback)handle->coverage_filter;
 
-		if (cb)
+		if (cb){
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_coverage_instrumentation_enabled calling callback start ...3... ");
 			cover |= cb (handle->prof, method);
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_coverage_instrumentation_enabled calling callback end ...3... ");
+		}
 	}
 
 	return cover;
@@ -787,8 +794,11 @@ mono_profiler_get_call_instrumentation_flags (MonoMethod *method)
 	for (MonoProfilerHandle handle = mono_profiler_state.profilers; handle; handle = handle->next) {
 		MonoProfilerCallInstrumentationFilterCallback cb = (MonoProfilerCallInstrumentationFilterCallback)handle->call_instrumentation_filter;
 
-		if (cb)
+		if (cb){
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_call_instrumentation_flagsyy calling callback start ...4... ");
 			flags |= cb (handle->prof, method);
+			printf("\nVIKAS_LOG_MONO :: mono_profiler_get_call_instrumentation_flags calling callback end ...4... ");
+		}
 	}
 
 	return flags;

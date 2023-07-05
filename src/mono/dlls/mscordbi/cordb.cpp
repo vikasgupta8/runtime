@@ -104,7 +104,9 @@ HRESULT Cordb::EnumerateProcesses(ICorDebugProcessEnum** ppProcess)
 
 HRESULT Cordb::GetProcess(DWORD dwProcessId, ICorDebugProcess** ppProcess)
 {
+    printf("\nVIKAS_LOG_MONO :: Cordb::GetProcess START");
     m_pProcess->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
+    printf("\nVIKAS_LOG_MONO :: Cordb::GetProcess END");
     return S_OK;
 }
 
@@ -124,9 +126,12 @@ Cordb::Cordb(DWORD PID) : CordbBaseMono(NULL)
     PAL_InitializeDLL();
 #endif
 
+    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> befor LOGGING");
 #ifdef LOGGING
+    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> InitializeLogging");
     InitializeLogging();
 #endif
+    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> after LOGGING");
 }
 
 Cordb::~Cordb()
@@ -206,6 +211,7 @@ Connection::Connection(CordbProcess* proc, Cordb* cordb)
     m_pCordb                   = cordb;
     m_pReceiveReplies           = new ArrayList();
     m_pReceivedPacketsToProcess = new ArrayList();
+    m_isReceivedRequest		= false;
 }
 
 Connection::~Connection()
@@ -288,6 +294,7 @@ void Connection::Receive()
         }
         else
         {
+    	    printf("\nVIKAS_LOG_MONO :: Connection::Receive Append recvbuf");
             m_pReceivedPacketsToProcess->Append(recvbuf);
         }
         dbg_unlock();
@@ -321,6 +328,8 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
     int             spolicy            = m_dbgprot_decode_byte(recvbuf->p, &recvbuf->p, recvbuf->end);
     int             nevents            = m_dbgprot_decode_int(recvbuf->p, &recvbuf->p, recvbuf->end);
     CordbAppDomain* pCorDebugAppDomain = GetCurrentAppDomain();
+    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal START setting SetReceivedRequest TRUE nevents = %d",nevents);
+    //SetReceivedRequest(true);
     for (int i = 0; i < nevents; ++i)
     {
 
@@ -334,44 +343,64 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
         LOG((LF_CORDB, LL_INFO100000, "Received %d %d events %s, suspend=%d\n", i, nevents,
              m_dbgprot_event_to_string(etype), spolicy));
 
+        printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal etype = %d",etype);
         switch (etype)
         {
             case MDBGPROT_EVENT_KIND_VM_START:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_VM_START ");
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal calling CreateProcess");
+    		if (pCorDebugAppDomain == NULL)
+		{
+        		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal MDBGPROT_EVENT_KIND_VM_START calling CordbAppDomain constructor");
+		        pCorDebugAppDomain = new CordbAppDomain(this, GetProcess());
+    		}
                 m_pCordb->GetCallback()->CreateProcess(static_cast<ICorDebugProcess*>(GetProcess()));
             }
             break;
             case MDBGPROT_EVENT_KIND_VM_DEATH:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_VM_DEATH ");
                 m_pCordb->GetCallback()->ExitProcess(static_cast<ICorDebugProcess*>(GetProcess()));
             }
             break;
             case MDBGPROT_EVENT_KIND_THREAD_START:
             {
-                CordbThread* thread = new CordbThread(this, GetProcess(), thread_id);
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_THREAD_START ");
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal case MDBGPROT_EVENT_KIND_THREAD_START calling CreateThread");
+		CordbThread* thread = new CordbThread(this, GetProcess(), thread_id);
                 m_pCordb->GetCallback()->CreateThread(pCorDebugAppDomain, thread);
             }
             break;
             case MDBGPROT_EVENT_KIND_APPDOMAIN_CREATE:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_APPDOMAIN_CREATE ");
             }
             break;
             case MDBGPROT_EVENT_KIND_ASSEMBLY_LOAD:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_ASSEMBLY_LOAD ");
                 // all the callbacks call a resume, in this case that we are faking 2
                 // callbacks without receive command, we should not send the continue
                 int assembly_id = m_dbgprot_decode_id(recvbuf->p, &recvbuf->p, recvbuf->end);
-                if (pCorDebugAppDomain == NULL)
+                /*if (pCorDebugAppDomain == NULL)
                 {
+                    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal calling CordbAppDomain constructor");
                     pCorDebugAppDomain = new CordbAppDomain(this, GetProcess());
                     GetProcess()->Stop(false);
                     m_pCordb->GetCallback()->CreateAppDomain(static_cast<ICorDebugProcess*>(GetProcess()),
                                                            pCorDebugAppDomain);
-                }
+                }*/
+
+        	GetProcess()->Stop(false);
+	        m_pCordb->GetCallback()->CreateAppDomain(static_cast<ICorDebugProcess*>(GetProcess()),
+                                                           pCorDebugAppDomain);
+
                 CordbAssembly* pAssembly = new CordbAssembly(this, GetProcess(), pCorDebugAppDomain, assembly_id);
                 CordbModule*   pModule   = new CordbModule(this, GetProcess(), (CordbAssembly*)pAssembly, assembly_id);
 
                 GetProcess()->Stop(false);
+                printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal calling LoadAssembly and LoadModule");
                 m_pCordb->GetCallback()->LoadAssembly(pCorDebugAppDomain, pAssembly);
 
                 m_pCordb->GetCallback()->LoadModule(pCorDebugAppDomain, pModule);
@@ -379,6 +408,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
             break;
             case MDBGPROT_EVENT_KIND_BREAKPOINT:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_BREAKPOINT ");
                 int          method_id = m_dbgprot_decode_id(recvbuf->p, &recvbuf->p, recvbuf->end);
                 int64_t      offset    = m_dbgprot_decode_long(recvbuf->p, &recvbuf->p, recvbuf->end);
                 CordbThread* thread    = GetProcess()->FindThread(thread_id);
@@ -386,6 +416,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
                 {
                     thread = new CordbThread(this, GetProcess(), thread_id);
                     GetProcess()->Stop(false);
+    		    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal case MDBGPROT_EVENT_KIND_BREAKPOINT calling CreateThread");
                     m_pCordb->GetCallback()->CreateThread(pCorDebugAppDomain, thread);
                 }
                 DWORD                    i          = 0;
@@ -396,6 +427,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
             break;
             case MDBGPROT_EVENT_KIND_STEP:
             {
+    		printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal Event = MDBGPROT_EVENT_KIND_STEP ");
                 int          method_id = m_dbgprot_decode_id(recvbuf->p, &recvbuf->p, recvbuf->end);
                 int64_t      offset    = m_dbgprot_decode_long(recvbuf->p, &recvbuf->p, recvbuf->end);
                 CordbThread* thread    = GetProcess()->FindThread(thread_id);
@@ -403,6 +435,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
                 {
                     thread = new CordbThread(this, GetProcess(), thread_id);
                     GetProcess()->Stop(false);
+    		    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal case MDBGPROT_EVENT_KIND_STEP calling CreateThread");
                     m_pCordb->GetCallback()->CreateThread(pCorDebugAppDomain, thread);
                 }
                 CordbStepper* stepper = GetProcess()->GetStepper(req_id);
@@ -416,6 +449,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
             }
         }
     }
+    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal END");
     // m_dbgprot_buffer_free(&recvbuf);
 }
 
@@ -428,12 +462,19 @@ int Connection::ProcessPacket(bool is_answer)
 
 void Connection::ProcessPacketFromQueue()
 {
+    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue START");
     DWORD i = 0;
+    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue = count = %d ",m_pReceivedPacketsToProcess->GetCount());
+    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue setting SetReceivedRequest FALSE");
+    //SetReceivedRequest(false);
+    
     while (i < m_pReceivedPacketsToProcess->GetCount())
     {
+    	//printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue in while i = %d ",i);
         MdbgProtBuffer* req = (MdbgProtBuffer*)m_pReceivedPacketsToProcess->Get(i);
         if (req)
         {
+    	    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue calling ProcessPacketInternal(req)");
             ProcessPacketInternal(req);
             dbg_lock();
             m_pReceivedPacketsToProcess->Set(i, NULL);
@@ -444,6 +485,7 @@ void Connection::ProcessPacketFromQueue()
         i++;
     }
     GetProcess()->CheckPendingEval();
+    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue END");
 }
 
 void Connection::LoopSendReceive()
@@ -565,7 +607,7 @@ int Connection::SendEvent(int cmd_set, int cmd, MdbgProtBuffer* sendbuf)
     return ret;
 }
 
-MONO_API HRESULT CoreCLRCreateCordbObject(int iDebuggerVersion, DWORD pid, HMODULE hmodTargetCLR, void** ppCordb)
+MONO_API DLLEXPORT HRESULT CoreCLRCreateCordbObject(int iDebuggerVersion, DWORD pid, HMODULE hmodTargetCLR, void** ppCordb)
 {
     *ppCordb = new Cordb(pid);
     return S_OK;
