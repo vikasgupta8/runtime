@@ -85,7 +85,6 @@ mono_thread_platform_create_thread (MonoThreadStart thread_fn, gpointer thread_d
 #endif /* HAVE_PTHREAD_ATTR_SETSTACKSIZE */
 
 	/* Actually start the thread */
-	printf ("\nVIKAS_MONO_LOG :: mono_thread_platform_create_thread -> mono_gc_pthread_create\n");
 	res = mono_gc_pthread_create (&thread, &attr, (gpointer (*)(gpointer)) thread_fn, thread_data);
 	if (res) {
 		res = pthread_attr_destroy (&attr);

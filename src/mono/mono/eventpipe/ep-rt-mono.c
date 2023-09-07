@@ -5769,7 +5769,6 @@ mono_profiler_app_domain_loading (
 	MonoProfiler *prof,
 	MonoDomain *domain)
 {
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_app_domain_loading start\n");
 	if (!EventEnabledMonoProfilerAppDomainLoading ())
 		return;
 
@@ -5783,7 +5782,6 @@ mono_profiler_app_domain_loading (
 		NULL);
 
 	mono_profiler_fire_event_exit ();
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_app_domain_loading end\n");
 }
 
 static
@@ -5792,7 +5790,6 @@ mono_profiler_app_domain_loaded (
 	MonoProfiler *prof,
 	MonoDomain *domain)
 {
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_app_domain_loaded start\n");
 	if (!EventEnabledMonoProfilerAppDomainLoaded ())
 		return;
 
@@ -5806,7 +5803,6 @@ mono_profiler_app_domain_loaded (
 		NULL);
 
 	mono_profiler_fire_event_exit ();
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_app_domain_loaded end\n");
 }
 
 static
@@ -7457,7 +7453,6 @@ mono_profiler_ep_provider_callback (
 	EventFilterDescriptor *filter_data,
 	void *callback_data)
 {
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_ep_provider_callback start\n");
 	ep_rt_config_requires_lock_not_held ();
 	ep_rt_spin_lock_requires_lock_held (&_ep_rt_mono_profiler_gc_state_lock);
 
@@ -7472,7 +7467,6 @@ mono_profiler_ep_provider_callback (
 
 		if (profiler_callback_is_enabled(match_any_keywords, LOADER_KEYWORD)) {
 			if (!profiler_callback_is_enabled (enabled_keywords, LOADER_KEYWORD)) {
-				printf ("\nVIKAS_MONO_LOG :: mono_profiler_ep_provider_callback adding callbacks.....1.....\n");
 				mono_profiler_set_domain_loading_callback (_ep_rt_dotnet_mono_profiler_provider, mono_profiler_app_domain_loading);
 				mono_profiler_set_domain_loaded_callback (_ep_rt_dotnet_mono_profiler_provider, mono_profiler_app_domain_loaded);
 				mono_profiler_set_domain_unloading_callback (_ep_rt_dotnet_mono_profiler_provider, mono_profiler_app_domain_unloading);
@@ -7490,7 +7484,6 @@ mono_profiler_ep_provider_callback (
 			}
 		} else {
 			if (profiler_callback_is_enabled (enabled_keywords, LOADER_KEYWORD)) {
-				printf ("\nVIKAS_MONO_LOG :: mono_profiler_ep_provider_callback adding callbacks.....2.....\n");
 				mono_profiler_set_domain_loading_callback (_ep_rt_dotnet_mono_profiler_provider, NULL);
 				mono_profiler_set_domain_loaded_callback (_ep_rt_dotnet_mono_profiler_provider, NULL);
 				mono_profiler_set_domain_unloading_callback (_ep_rt_dotnet_mono_profiler_provider, NULL);
@@ -7731,7 +7724,6 @@ mono_profiler_ep_provider_callback (
 		MICROSOFT_DOTNETRUNTIME_MONO_PROFILER_PROVIDER_EVENTPIPE_Context.EnabledKeywordsBitmask = match_any_keywords;
 		MICROSOFT_DOTNETRUNTIME_MONO_PROFILER_PROVIDER_EVENTPIPE_Context.IsEnabled = (is_enabled == 1 ? true : false);
 	EP_LOCK_EXIT (section1)
-	printf ("\nVIKAS_MONO_LOG :: mono_profiler_ep_provider_callback end\n");
 
 ep_on_exit:
 	ep_rt_config_requires_lock_not_held ();

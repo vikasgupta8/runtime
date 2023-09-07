@@ -138,9 +138,7 @@ HRESULT STDMETHODCALLTYPE CordbThread::InterceptCurrentException(
 
 HRESULT STDMETHODCALLTYPE CordbThread::GetProcess(ICorDebugProcess** ppProcess)
 {
-    printf("\nVIKAS_LOG_MONO :: CordbThread::GetProcess START");
     LOG((LF_CORDB, LL_INFO100000, "CordbThread - GetProcess - NOT IMPLEMENTED\n"));
-    printf("\nVIKAS_LOG_MONO :: CordbThread::GetProcess END");
     return S_OK;
 }
 

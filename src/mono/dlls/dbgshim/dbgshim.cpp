@@ -99,7 +99,6 @@ CreateProcessForLaunch(
     _Out_ PDWORD pProcessId,
     _Out_ HANDLE *pResumeHandle)
 {
-    printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch START");
     PUBLIC_CONTRACT;
     PROCESS_INFORMATION processInfo;
     STARTUPINFOW startupInfo;
@@ -119,10 +118,9 @@ CreateProcessForLaunch(
             return ret;
         }
     }
-    else{
-        printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch setting MONO_ENV_OPTIONS");
+    else
         putenv("MONO_ENV_OPTIONS='--debugger-agent=transport=dt_socket,address=127.0.0.1:pid_based,server=n,suspend=y,loglevel=10,timeout=100000'");
-    }
+
     BOOL result = CreateProcessW(
         NULL,
         lpCommandLine,
@@ -154,7 +152,6 @@ CreateProcessForLaunch(
         *pResumeHandle = processInfo.hThread;
     }
 
-    printf("\nVIKAS_LOG_MONO :: CreateProcessForLaunch END");
     return S_OK;
 }
 

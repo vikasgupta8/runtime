@@ -4656,6 +4656,7 @@ mini_init (const char *filename)
 		 */
 		mono_runtime_set_no_exec (TRUE);
 	}
+
 	domain = mono_init (filename);
 
 	if (mono_compile_aot)
@@ -4738,7 +4739,7 @@ mini_init (const char *filename)
 		mono_runtime_setup_stat_profiler ();
 
 	MONO_PROFILER_RAISE (runtime_initialized, ());
-	
+
 	MONO_VES_INIT_END ();
 
 	return domain;

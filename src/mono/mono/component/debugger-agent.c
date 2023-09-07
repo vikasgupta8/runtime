@@ -1824,9 +1824,7 @@ decode_objid (guint8 *buf, guint8 **endbuf, guint8 *limit)
 static void
 buffer_add_objid (Buffer *buf, MonoObject *o)
 {
-	int obj_id = get_objid (o);
-	buffer_add_id (buf, obj_id);
-	//buffer_add_id (buf, get_objid (o));
+	buffer_add_id (buf, get_objid (o));
 }
 
 /*
@@ -3613,17 +3611,13 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			thread = NULL;
 		} else {
 			if (!thread)
-			{
 				thread = is_debugger_thread () ? mono_thread_get_main () : mono_thread_current ();
-			}
+
 			if (event == EVENT_KIND_VM_START && arg != NULL)
-			{
 				thread = (MonoThread *)arg;
-			}
 		}
 
 		buffer_add_objid (&buf, (MonoObject*)thread); // thread
-
 
 		switch (event) {
 		case EVENT_KIND_THREAD_START:
@@ -3781,7 +3775,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		vm_start_event_sent = TRUE;
 	}
 
-	PRINT_DEBUG_MSG (1, "[%p][%d] Sent %d events %s(%d), suspend=%d.\n", (gpointer) (gsize) mono_native_thread_id_get (), (gsize) mono_native_thread_id_get (),nevents, event_to_string (event), ecount, suspend_policy);
+	PRINT_DEBUG_MSG (1, "[%p] Sent %d events %s(%d), suspend=%d.\n", (gpointer) (gsize) mono_native_thread_id_get (), nevents, event_to_string (event), ecount, suspend_policy);
 
 	switch (suspend_policy) {
 	case SUSPEND_POLICY_NONE:
@@ -3829,9 +3823,8 @@ static void
 runtime_initialized (MonoProfiler *prof)
 {
 	process_profiler_event (EVENT_KIND_VM_START, mono_thread_current ());
-	if (CHECK_PROTOCOL_VERSION (2, 59)){
+	if (CHECK_PROTOCOL_VERSION (2, 59))
 		process_profiler_event (EVENT_KIND_ASSEMBLY_LOAD, (mono_get_corlib ()->assembly));
-	}
 
 	MonoInternalThread *thread = mono_thread_internal_current ();
 	process_profiler_event (EVENT_KIND_THREAD_START, thread);
@@ -10322,7 +10315,7 @@ debugger_thread (void *arg)
 {
 	gboolean attach_failed = FALSE;
 
-	//PRINT_DEBUG_MSG (1, "[dbg] Agent thread started, pid=%p\n", (gpointer) (gsize) mono_native_thread_id_get ());
+	PRINT_DEBUG_MSG (1, "[dbg] Agent thread started, pid=%p\n", (gpointer) (gsize) mono_native_thread_id_get ());
 
 	debugger_thread_id = mono_native_thread_id_get ();
 
@@ -10368,10 +10361,10 @@ debugger_thread (void *arg)
 	mono_coop_cond_signal (&debugger_thread_exited_cond);
 	mono_coop_mutex_unlock (&debugger_thread_exited_mutex);
 
-	//PRINT_DEBUG_MSG (1, "[dbg] Debugger thread exited.\n");
+	PRINT_DEBUG_MSG (1, "[dbg] Debugger thread exited.\n");
 
 	if (!attach_failed && is_vm_dispose_command && !(vm_death_event_sent || mono_runtime_is_shutting_down ())) {
-		//PRINT_DEBUG_MSG (2, "[dbg] Detached - restarting clean debugger thread.\n");
+		PRINT_DEBUG_MSG (2, "[dbg] Detached - restarting clean debugger thread.\n");
 		ERROR_DECL (error);
 		start_debugger_thread_func (error);
 		mono_error_cleanup (error);
@@ -10397,7 +10390,7 @@ bool mono_debugger_agent_receive_and_process_command (void)
 		/* This will break if the socket is closed during shutdown too */
 		if (res != HEADER_LENGTH) {
 #ifndef HOST_WASI //on wasi we can try to get message from debugger and don't have any message
-			//PRINT_DEBUG_MSG (1, "[dbg] transport_recv () returned %d, expected %d.\n", res, HEADER_LENGTH);
+			PRINT_DEBUG_MSG (1, "[dbg] transport_recv () returned %d, expected %d.\n", res, HEADER_LENGTH);
 			command_set = (CommandSet)0;
 			command = 0;
 			dispose_vm ();
@@ -10433,7 +10426,7 @@ bool mono_debugger_agent_receive_and_process_command (void)
 		{
 			res = transport_recv (data, len - HEADER_LENGTH);
 			if (res != len - HEADER_LENGTH) {
-				//PRINT_DEBUG_MSG (1, "[dbg] transport_recv () returned %d, expected %d.\n", res, len - HEADER_LENGTH);
+				PRINT_DEBUG_MSG (1, "[dbg] transport_recv () returned %d, expected %d.\n", res, len - HEADER_LENGTH);
 				break;
 			}
 		}

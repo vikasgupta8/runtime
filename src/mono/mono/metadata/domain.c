@@ -76,8 +76,7 @@ create_root_domain (void)
 
 	unsigned int i, bit = 0;
 	memset (domain_gc_bitmap, 0, sizeof (domain_gc_bitmap));
-	for (i = G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_FIRST_OBJECT); i <= G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_LAST_OBJECT); i += sizeof (gpointer))
-	{
+	for (i = G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_FIRST_OBJECT); i <= G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_LAST_OBJECT); i += sizeof (gpointer)) {
 		bit = i / sizeof (gpointer);
 		domain_gc_bitmap [bit / 32] |= (gsize) 1 << (bit % 32);
 	}
@@ -88,11 +87,9 @@ create_root_domain (void)
 	else
 		domain = (MonoDomain *)mono_gc_alloc_fixed (sizeof (MonoDomain), domain_gc_desc, MONO_ROOT_SOURCE_DOMAIN, NULL, "Domain Structure");
 
-	printf ("\nVIKAS_MONO_LOG :: create_root_domain ->  MONO_PROFILER_RAISE -> domain_loading\n");
 	MONO_PROFILER_RAISE (domain_loading, (domain));
 
 
-	printf ("\nVIKAS_MONO_LOG :: create_root_domain -> MONO_PROFILER_RAISE -> domain_loaded\n");
 	MONO_PROFILER_RAISE (domain_loaded, (domain));
 
 	return domain;
@@ -110,7 +107,6 @@ create_root_domain (void)
 static MonoDomain *
 mono_init_internal (const char *root_domain_name)
 {
-	printf ("\nVIKAS_MONO_LOG :: mono_init_internal START\n");
 	static MonoDomain *domain = NULL;
 	MonoAssembly *corlib_assembly = NULL;
 
@@ -144,9 +140,7 @@ mono_init_internal (const char *root_domain_name)
 	mono_runtime_init_tls ();
 	mono_icall_init ();
 
-	printf ("\nVIKAS_MONO_LOG :: mono_init_internal -> create_root_domain -> start\n");
 	domain = create_root_domain ();
-	printf ("\nVIKAS_MONO_LOG :: mono_init_internal -> create_root_domain -> end\n");
 	mono_root_domain = domain;
 
 	mono_alcs_init ();
@@ -301,7 +295,6 @@ mono_init_internal (const char *root_domain_name)
 
 	MONO_PROFILER_RAISE (domain_name, (domain, domain->friendly_name));
 
-	printf ("\nVIKAS_MONO_LOG :: mono_init_internal END return domain\n");
 	return domain;
 }
 
@@ -319,7 +312,6 @@ mono_init_internal (const char *root_domain_name)
 MonoDomain *
 mono_init (const char *root_domain_name)
 {
-	printf ("\nVIKAS_MONO_LOG :: mono_init calling mono_init_internal().\n");
 	return mono_init_internal (root_domain_name);
 }
 

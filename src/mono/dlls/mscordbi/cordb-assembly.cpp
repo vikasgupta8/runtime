@@ -141,10 +141,8 @@ HRESULT CordbAssembly::QueryInterface(REFIID id, _COM_Outptr_ void __RPC_FAR* __
 
 HRESULT CordbAssembly::GetProcess(ICorDebugProcess** ppProcess)
 {
-    printf("\nVIKAS_LOG_MONO :: CordbAssembly::GetProcess START");
     LOG((LF_CORDB, LL_INFO1000000, "CorDebugAssembly - GetProcess - IMPLEMENTED\n"));
     conn->GetProcess()->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
-    printf("\nVIKAS_LOG_MONO :: CordbAssembly::GetProcess END");
     return S_OK;
 }
 
@@ -258,10 +256,8 @@ HRESULT CordbModule::ResolveAssembly(mdToken tkAssemblyRef, ICorDebugAssembly** 
 
 HRESULT CordbModule::GetProcess(ICorDebugProcess** ppProcess)
 {
-    printf("\nVIKAS_LOG_MONO :: CordbModule::GetProcess START");
     LOG((LF_CORDB, LL_INFO100000, "CordbModule - GetProcess - IMPLEMENTED\n"));
     conn->GetProcess()->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
-    printf("\nVIKAS_LOG_MONO :: CordbModule::GetProcess END");
     return S_OK;
 }
 
@@ -398,10 +394,10 @@ HRESULT CordbModule::GetMetaDataInterface(REFIID riid, IUnknown** ppObj)
         }
 
         m_pRegMeta->InitWithStgdb((ICorDebugModule*)this, m_pStgdbRW);
+        m_pRegMeta->AddRef();
     }
     m_pRegMeta->QueryInterface(riid, (void**)ppObj);
     LOG((LF_CORDB, LL_INFO1000000, "CordbModule - GetMetaDataInterface - IMPLEMENTED\n"));
-
     return S_OK;
 }
 
