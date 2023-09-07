@@ -238,7 +238,24 @@ HRESULT STDMETHODCALLTYPE CordbJITILFrame::RemapFunction(ULONG32 newILOffset)
 
 HRESULT STDMETHODCALLTYPE CordbJITILFrame::EnumerateTypeParameters(ICorDebugTypeEnum** ppTyParEnum)
 {
+/*    
+    CorElementType type = ELEMENT_TYPE_END;
+    CordbType*     pCordbType  = new CordbType(type, conn);
+    if (pCordbType == NULL)
+	return S_OK;
+
+    pCordbType->InternalAddRef() ;
+
+    CordbTypeEnum* pTypeEnum = new CordbTypeEnum(conn, pCordbType);
+*/
+    CordbTypeEnum* pTypeEnum = new CordbTypeEnum(conn, NULL);
+    if (pTypeEnum == NULL)
+	return S_OK;
+
+    pTypeEnum->InternalAddRef();
+    pTypeEnum->QueryInterface(IID_ICorDebugTypeEnum, (void**)ppTyParEnum);
     LOG((LF_CORDB, LL_INFO100000, "CordbFrame - EnumerateTypeParameters - NOT IMPLEMENTED\n"));
+
     return S_OK;
 }
 

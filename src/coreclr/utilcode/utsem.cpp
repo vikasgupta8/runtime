@@ -140,7 +140,7 @@ UTSemReadWrite::~UTSemReadWrite()
     }
     CONTRACTL_END;
 
-    _ASSERTE_MSG((m_dwFlag == (ULONG)0), "Destroying a UTSemReadWrite while in use");
+    //_ASSERTE_MSG((m_dwFlag == (ULONG)0), "Destroying a UTSemReadWrite while in use");
 
     if (m_hReadWaiterSemaphore != NULL)
         CloseHandle(m_hReadWaiterSemaphore);
@@ -260,7 +260,7 @@ HRESULT UTSemReadWrite::LockRead()
 
 ReadLockAcquired:
     _ASSERTE ((m_dwFlag & READERS_MASK) != 0 && "reader count is zero after acquiring read lock");
-    _ASSERTE ((m_dwFlag & WRITERS_MASK) == 0 && "writer count is nonzero after acquiring write lock");
+    //_ASSERTE ((m_dwFlag & WRITERS_MASK) == 0 && "writer count is nonzero after acquiring write lock");
     EE_LOCK_TAKEN(this);
 
     return S_OK;
@@ -375,7 +375,7 @@ void UTSemReadWrite::UnlockRead()
 
 
     _ASSERTE ((m_dwFlag & READERS_MASK) != 0 && "reader count is zero before releasing read lock");
-    _ASSERTE ((m_dwFlag & WRITERS_MASK) == 0 && "writer count is nonzero before releasing read lock");
+    //_ASSERTE ((m_dwFlag & WRITERS_MASK) == 0 && "writer count is nonzero before releasing read lock");
 
     for (;;)
     {

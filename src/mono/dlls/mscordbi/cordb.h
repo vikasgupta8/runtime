@@ -145,7 +145,10 @@ public:
     int                  SendEvent(int cmd_set, int cmd, MdbgProtBuffer* sendbuf);
     ReceivedReplyPacket* GetReplyWithError(int cmdId);
     CordbAppDomain*      GetCurrentAppDomain();
-    
+
+    ArrayList* GetReceivedPacketsToProcess(){
+	return m_pReceivedPacketsToProcess;
+    }
 };
 
 class CordbBaseMono
