@@ -206,7 +206,6 @@ Connection::Connection(CordbProcess* proc, Cordb* cordb)
     m_pCordb                   = cordb;
     m_pReceiveReplies           = new ArrayList();
     m_pReceivedPacketsToProcess = new ArrayList();
-    m_isReceivedRequest		= false;
 }
 
 Connection::~Connection()
@@ -322,7 +321,6 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
     int             spolicy            = m_dbgprot_decode_byte(recvbuf->p, &recvbuf->p, recvbuf->end);
     int             nevents            = m_dbgprot_decode_int(recvbuf->p, &recvbuf->p, recvbuf->end);
     CordbAppDomain* pCorDebugAppDomain = GetCurrentAppDomain();
-    //SetReceivedRequest(true);
     for (int i = 0; i < nevents; ++i)
     {
 
@@ -455,7 +453,6 @@ int Connection::ProcessPacket(bool is_answer)
 void Connection::ProcessPacketFromQueue()
 {
     DWORD i = 0;
-    
     while (i < m_pReceivedPacketsToProcess->GetCount())
     {
         MdbgProtBuffer* req = (MdbgProtBuffer*)m_pReceivedPacketsToProcess->Get(i);

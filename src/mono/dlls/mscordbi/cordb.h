@@ -117,7 +117,6 @@ class Connection
     Cordb*        m_pCordb;
     ArrayList*    m_pReceiveReplies;           // TODO use hashmap
     ArrayList*    m_pReceivedPacketsToProcess;
-    BOOL	  m_isReceivedRequest;
 
     void          ProcessPacketInternal(MdbgProtBuffer* recvbuf);
     void          ProcessPacketFromQueue();
@@ -147,18 +146,6 @@ public:
     ReceivedReplyPacket* GetReplyWithError(int cmdId);
     CordbAppDomain*      GetCurrentAppDomain();
     
-    void SetReceivedRequest(bool isReceivedRequest) {
-	printf("\nVIKAS_LOG_MONO :: SetReceivedRequest setting isReceivedRequest = %d",isReceivedRequest);
-	m_isReceivedRequest = isReceivedRequest;
-    }
-
-    BOOL GetReceivedRequest(){
-	return m_isReceivedRequest;
-    }
-    
-    ArrayList* GetReceivedPacketsToProcess(){
-	return m_pReceivedPacketsToProcess;
-    }
 };
 
 class CordbBaseMono
