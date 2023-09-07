@@ -4456,7 +4456,6 @@ mono_get_runtime_build_version (void);
 MonoDomain *
 mini_init (const char *filename)
 {
-	printf ("\nVIKAS_MONO_LOG :: mini_init start.\n");
 	ERROR_DECL (error);
 	MonoDomain *domain;
 
@@ -4657,7 +4656,6 @@ mini_init (const char *filename)
 		 */
 		mono_runtime_set_no_exec (TRUE);
 	}
-	printf ("\nVIKAS_MONO_LOG :: mini_init calling mono_init().\n");
 	domain = mono_init (filename);
 
 	if (mono_compile_aot)
@@ -4720,10 +4718,8 @@ mini_init (const char *filename)
 #define JIT_RUNTIME_WORKS
 #ifdef JIT_RUNTIME_WORKS
 	mono_install_runtime_cleanup (runtime_cleanup);
-	printf ("\nVIKAS_MONO_LOG :: mini_init -> mono_runtime_init_checked\n");
 	mono_runtime_init_checked (domain, (MonoThreadStartCB)mono_thread_start_cb, mono_thread_attach_cb, error);
 	mono_error_assert_ok (error);
-	printf ("\nVIKAS_MONO_LOG :: mini_init -> mono_thread_internal_attach\n");
 	mono_thread_internal_attach (domain);
 	MONO_PROFILER_RAISE (thread_name, (MONO_NATIVE_THREAD_ID_TO_UINT (mono_native_thread_id_get ()), "Main"));
 #endif
@@ -4741,13 +4737,10 @@ mini_init (const char *filename)
 	if (mono_profiler_sampling_enabled ())
 		mono_runtime_setup_stat_profiler ();
 
-	printf ("\nVIKAS_MONO_LOG :: mini_init calling runtime_initialized start().\n");
 	MONO_PROFILER_RAISE (runtime_initialized, ());
-	printf ("\nVIKAS_MONO_LOG :: mini_init calling runtime_initialized end().\n");
 	
 	MONO_VES_INIT_END ();
 
-	printf ("\nVIKAS_MONO_LOG :: mini_init end.\n");
 	return domain;
 }
 

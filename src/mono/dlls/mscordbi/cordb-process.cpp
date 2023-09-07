@@ -278,8 +278,16 @@ HRESULT CordbProcess::GetHandle(HPROCESS* phProcessHandle)
 
 HRESULT CordbProcess::GetThread(DWORD dwThreadId, ICorDebugThread** ppThread)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - NOT IMPLEMENTED\n"));
-    return S_OK;
+    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - IMPLEMENTED\n"));
+    HRESULT hr = S_OK;
+
+    CordbThread* thread    = FindThread(dwThreadId);
+    if (thread == NULL)
+        hr = E_INVALIDARG;
+    
+    *ppThread = thread;
+
+    return hr;
 }
 
 HRESULT CordbProcess::EnumerateObjects(ICorDebugObjectEnum** ppObjects)
@@ -662,6 +670,7 @@ CordbClass* CordbProcess::FindOrAddClass(mdToken token, int module_id)
 CordbType* CordbProcess::FindOrAddPrimitiveType(CorElementType type)
 {
     CordbType* ret = NULL;
+    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddPrimitiveType -> START with type = %d",type);
     MapSHashWithRemove<long, CordbType*>* typeMap = (MapSHashWithRemove<long, CordbType*>*) m_pTypeMapArray->Get(CordbTypeKindSimpleType);
     dbg_lock();
     if (!typeMap->Lookup(type, &ret)) {
@@ -676,6 +685,7 @@ CordbType* CordbProcess::FindOrAddPrimitiveType(CorElementType type)
 CordbType* CordbProcess::FindOrAddClassType(CorElementType type, CordbClass *klass)
 {
     CordbType* ret = NULL;
+    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddClassType -> START with type = %d",type);
     mdToken token;
     if (klass == NULL)
         return FindOrAddPrimitiveType(type);
@@ -693,6 +703,7 @@ CordbType* CordbProcess::FindOrAddClassType(CorElementType type, CordbClass *kla
 
 CordbType* CordbProcess::FindOrAddArrayType(CorElementType type, CordbType* arrayType)
 {
+    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddArrayType -> START with type = %d",type);
     CordbType* ret = NULL;
     long hash = 0;
     MapSHashWithRemove<long, CordbType*>* typeMap = (MapSHashWithRemove<long, CordbType*>*) m_pTypeMapArray->Get(CordbTypeKindArrayType);

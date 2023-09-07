@@ -1824,7 +1824,9 @@ decode_objid (guint8 *buf, guint8 **endbuf, guint8 *limit)
 static void
 buffer_add_objid (Buffer *buf, MonoObject *o)
 {
-	buffer_add_id (buf, get_objid (o));
+	int obj_id = get_objid (o);
+	buffer_add_id (buf, obj_id);
+	//buffer_add_id (buf, get_objid (o));
 }
 
 /*
@@ -3174,7 +3176,6 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls, gboolean f
 static void
 emit_appdomain_load (gpointer key, gpointer value, gpointer user_data)
 {
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: emit_appdomain_load -> process_profiler_event EVENT_KIND_APPDOMAIN_CREATE ");
 	process_profiler_event (EVENT_KIND_APPDOMAIN_CREATE, value);
 	g_hash_table_foreach (get_agent_info ()->loaded_classes, emit_type_load, NULL);
 }
@@ -3189,7 +3190,6 @@ static void
 emit_thread_start (gpointer key, gpointer value, gpointer user_data)
 {
 	g_assert (!mono_native_thread_id_equals (MONO_UINT_TO_NATIVE_THREAD_ID (GPOINTER_TO_UINT (key)), debugger_thread_id));
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: emit_thread_start -> process_profiler_event EVENT_KIND_THREAD_START ");
 	process_profiler_event (EVENT_KIND_THREAD_START, value);
 }
 
@@ -3201,7 +3201,6 @@ emit_thread_start (gpointer key, gpointer value, gpointer user_data)
 static void
 emit_assembly_load (gpointer value, gpointer user_data)
 {
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: emit_assembly_load -> process_profiler_event EVENT_KIND_ASSEMBLY_LOAD ");
 	process_profiler_event (EVENT_KIND_ASSEMBLY_LOAD, value);
 }
 
@@ -3614,13 +3613,17 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			thread = NULL;
 		} else {
 			if (!thread)
+			{
 				thread = is_debugger_thread () ? mono_thread_get_main () : mono_thread_current ();
-
+			}
 			if (event == EVENT_KIND_VM_START && arg != NULL)
+			{
 				thread = (MonoThread *)arg;
+			}
 		}
 
 		buffer_add_objid (&buf, (MonoObject*)thread); // thread
+
 
 		switch (event) {
 		case EVENT_KIND_THREAD_START:
@@ -3778,7 +3781,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		vm_start_event_sent = TRUE;
 	}
 
-	PRINT_DEBUG_MSG (1, "[%p] Sent %d events %s(%d), suspend=%d.\n", (gpointer) (gsize) mono_native_thread_id_get (), nevents, event_to_string (event), ecount, suspend_policy);
+	PRINT_DEBUG_MSG (1, "[%p][%d] Sent %d events %s(%d), suspend=%d.\n", (gpointer) (gsize) mono_native_thread_id_get (), (gsize) mono_native_thread_id_get (),nevents, event_to_string (event), ecount, suspend_policy);
 
 	switch (suspend_policy) {
 	case SUSPEND_POLICY_NONE:
@@ -3819,19 +3822,20 @@ process_profiler_event (EventKind event, gpointer arg)
 	events = create_event_list (event, NULL, NULL, ei_arg, &suspend_policy);
 	mono_loader_unlock ();
 
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: process_profiler_event -> calling process_event with event = %d [%s]\n",event,event_to_string (event));
 	process_event (event, arg, 0, NULL, events, suspend_policy);
 }
 
 static void
 runtime_initialized (MonoProfiler *prof)
 {
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: runtime_initialized -> process_profiler_event EVENT_KIND_VM_START ");
 	process_profiler_event (EVENT_KIND_VM_START, mono_thread_current ());
 	if (CHECK_PROTOCOL_VERSION (2, 59)){
-    		PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: runtime_initialized -> process_profiler_event EVENT_KIND_ASSEMBLY_LOAD ");
 		process_profiler_event (EVENT_KIND_ASSEMBLY_LOAD, (mono_get_corlib ()->assembly));
 	}
+
+	MonoInternalThread *thread = mono_thread_internal_current ();
+	process_profiler_event (EVENT_KIND_THREAD_START, thread);
+
 	if (agent_config.defer) {
 		ERROR_DECL (error);
 		start_debugger_thread_func (error);
@@ -3902,7 +3906,6 @@ thread_startup (MonoProfiler *prof, uintptr_t tid)
 	mono_g_hash_table_insert_internal (tid_to_thread_obj, GUINT_TO_POINTER (tid), mono_thread_current ());
 	mono_loader_unlock ();
 
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: thread_startup -> process_profiler_event EVENT_KIND_THREAD_START ");
 	process_profiler_event (EVENT_KIND_THREAD_START, thread);
 
 	/*
@@ -3959,7 +3962,6 @@ appdomain_load (MonoProfiler *prof, MonoDomain *domain)
 {
 	mono_de_domain_add (domain);
 
-    	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: appdomain_load -> process_profiler_event EVENT_KIND_APPDOMAIN_CREATE ");
 	process_profiler_event (EVENT_KIND_APPDOMAIN_CREATE, domain);
 }
 
@@ -4132,7 +4134,6 @@ jit_end (MonoProfiler *prof, MonoMethod *method, MonoJitInfo *jinfo)
 		dbg_unlock ();
 
 		if (assembly) {
-    			PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: jit_end -> process_profiler_event EVENT_KIND_ASSEMBLY_LOAD ");
 			process_profiler_event (EVENT_KIND_ASSEMBLY_LOAD, assembly);
 		} else {
 			break;
@@ -10338,7 +10339,6 @@ debugger_thread (void *arg)
 		} else {
 			mono_set_is_debugger_attached (TRUE);
 			/* Send start event to client */
-    			PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: debugger_thread -> process_profiler_event EVENT_KIND_VM_START ");
 			process_profiler_event (EVENT_KIND_VM_START, mono_thread_get_main ());
 		}
 	} else {

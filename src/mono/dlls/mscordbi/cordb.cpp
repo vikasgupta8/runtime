@@ -104,9 +104,7 @@ HRESULT Cordb::EnumerateProcesses(ICorDebugProcessEnum** ppProcess)
 
 HRESULT Cordb::GetProcess(DWORD dwProcessId, ICorDebugProcess** ppProcess)
 {
-    printf("\nVIKAS_LOG_MONO :: Cordb::GetProcess START");
     m_pProcess->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
-    printf("\nVIKAS_LOG_MONO :: Cordb::GetProcess END");
     return S_OK;
 }
 
@@ -126,12 +124,9 @@ Cordb::Cordb(DWORD PID) : CordbBaseMono(NULL)
     PAL_InitializeDLL();
 #endif
 
-    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> befor LOGGING");
 #ifdef LOGGING
-    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> InitializeLogging");
     InitializeLogging();
 #endif
-    printf("\nVIKAS_LOG_MONO :: Cordb::Cordb -> after LOGGING");
 }
 
 Cordb::~Cordb()
@@ -294,7 +289,6 @@ void Connection::Receive()
         }
         else
         {
-    	    printf("\nVIKAS_LOG_MONO :: Connection::Receive Append recvbuf");
             m_pReceivedPacketsToProcess->Append(recvbuf);
         }
         dbg_unlock();
@@ -328,7 +322,6 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
     int             spolicy            = m_dbgprot_decode_byte(recvbuf->p, &recvbuf->p, recvbuf->end);
     int             nevents            = m_dbgprot_decode_int(recvbuf->p, &recvbuf->p, recvbuf->end);
     CordbAppDomain* pCorDebugAppDomain = GetCurrentAppDomain();
-    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal START setting SetReceivedRequest TRUE nevents = %d",nevents);
     //SetReceivedRequest(true);
     for (int i = 0; i < nevents; ++i)
     {
@@ -449,7 +442,6 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
             }
         }
     }
-    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketInternal END");
     // m_dbgprot_buffer_free(&recvbuf);
 }
 
@@ -462,19 +454,13 @@ int Connection::ProcessPacket(bool is_answer)
 
 void Connection::ProcessPacketFromQueue()
 {
-    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue START");
     DWORD i = 0;
-    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue = count = %d ",m_pReceivedPacketsToProcess->GetCount());
-    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue setting SetReceivedRequest FALSE");
-    //SetReceivedRequest(false);
     
     while (i < m_pReceivedPacketsToProcess->GetCount())
     {
-    	//printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue in while i = %d ",i);
         MdbgProtBuffer* req = (MdbgProtBuffer*)m_pReceivedPacketsToProcess->Get(i);
         if (req)
         {
-    	    //printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue calling ProcessPacketInternal(req)");
             ProcessPacketInternal(req);
             dbg_lock();
             m_pReceivedPacketsToProcess->Set(i, NULL);
@@ -485,7 +471,6 @@ void Connection::ProcessPacketFromQueue()
         i++;
     }
     GetProcess()->CheckPendingEval();
-    printf("\nVIKAS_LOG_MONO :: Connection::ProcessPacketFromQueue END");
 }
 
 void Connection::LoopSendReceive()
