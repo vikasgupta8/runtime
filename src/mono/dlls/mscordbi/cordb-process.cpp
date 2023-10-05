@@ -284,8 +284,9 @@ HRESULT CordbProcess::GetThread(DWORD dwThreadId, ICorDebugThread** ppThread)
     CordbThread* thread    = FindThread(dwThreadId);
     if (thread == NULL)
         hr = E_INVALIDARG;
-    
+
     *ppThread = thread;
+    thread->AddRef();
 
     return hr;
 }
@@ -536,7 +537,7 @@ HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueue
     ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
     DWORD count = pReceivedPacketsToProcess->GetCount();
     MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
-    printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
+    //printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
 
     *pbQueued = false;
     
@@ -670,7 +671,6 @@ CordbClass* CordbProcess::FindOrAddClass(mdToken token, int module_id)
 CordbType* CordbProcess::FindOrAddPrimitiveType(CorElementType type)
 {
     CordbType* ret = NULL;
-    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddPrimitiveType -> START with type = %d",type);
     MapSHashWithRemove<long, CordbType*>* typeMap = (MapSHashWithRemove<long, CordbType*>*) m_pTypeMapArray->Get(CordbTypeKindSimpleType);
     dbg_lock();
     if (!typeMap->Lookup(type, &ret)) {
@@ -685,7 +685,6 @@ CordbType* CordbProcess::FindOrAddPrimitiveType(CorElementType type)
 CordbType* CordbProcess::FindOrAddClassType(CorElementType type, CordbClass *klass)
 {
     CordbType* ret = NULL;
-    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddClassType -> START with type = %d",type);
     mdToken token;
     if (klass == NULL)
         return FindOrAddPrimitiveType(type);
@@ -703,7 +702,6 @@ CordbType* CordbProcess::FindOrAddClassType(CorElementType type, CordbClass *kla
 
 CordbType* CordbProcess::FindOrAddArrayType(CorElementType type, CordbType* arrayType)
 {
-    //printf("\nVIKAS_LOG_MONO :: CordbProcess::FindOrAddArrayType -> START with type = %d",type);
     CordbType* ret = NULL;
     long hash = 0;
     MapSHashWithRemove<long, CordbType*>* typeMap = (MapSHashWithRemove<long, CordbType*>*) m_pTypeMapArray->Get(CordbTypeKindArrayType);
