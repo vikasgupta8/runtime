@@ -24,7 +24,6 @@ public:
     }
     ULONG STDMETHODCALLTYPE Release(void)
     {
-        printf("\nVIKAS_LOG_MONO :: CordbType::Release ");
         return (BaseRelease());
     }
     const char* GetClassName()
@@ -56,7 +55,6 @@ public:
     }
     ULONG STDMETHODCALLTYPE Release(void)
     {
- //       printf("\nVIKAS_LOG_MONO :: CordbTypeEnum::Release ");
         return (BaseRelease());
     }
     const char* GetClassName()

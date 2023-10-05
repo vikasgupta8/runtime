@@ -355,7 +355,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
             break;
             case MDBGPROT_EVENT_KIND_THREAD_START:
             {
-		CordbThread* thread = new CordbThread(this, GetProcess(), thread_id);
+                CordbThread* thread = new CordbThread(this, GetProcess(), thread_id);
                 m_pCordb->GetCallback()->CreateThread(pCorDebugAppDomain, thread);
             }
             break;

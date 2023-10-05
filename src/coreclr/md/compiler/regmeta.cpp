@@ -132,7 +132,6 @@ RegMeta::~RegMeta()
         _ASSERTE(m_pUnk != NULL);   // Owning IUnknown for external StgDB.
         if (m_pUnk)
             m_pUnk->Release();
-        printf("\nVIKAS_LOG_PUNK :: RegMeta::~RegMeta -> setting m_pUnk.");
         m_pUnk = 0;
     }
     else

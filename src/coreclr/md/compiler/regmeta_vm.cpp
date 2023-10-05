@@ -267,7 +267,6 @@ ULONG RegMeta::Release()
         if (!bCached)
         {   // If the module is not (was not) cached, no other thread can have
             //  discovered the module, so this thread can now safely delete it.
-            printf("\nVIKAS_LOG_MNO :: RegMeta::Release -> 1. deleting RegMeta");
             delete this;
         }
 #if defined(FEATURE_METADATA_IN_VM)

@@ -57,7 +57,6 @@ HRESULT STDMETHODCALLTYPE CordbType::GetClass(ICorDebugClass** ppClass)
 
 HRESULT STDMETHODCALLTYPE CordbType::EnumerateTypeParameters(ICorDebugTypeEnum** ppTyParEnum)
 {
-    printf("\nVIKAS_LOG_MON :: CordbType::EnumerateTypeParameters -> START");
     if (m_pTypeEnum == NULL)
     {
         m_pTypeEnum = new CordbTypeEnum(conn, m_pTypeParameter);
@@ -66,7 +65,6 @@ HRESULT STDMETHODCALLTYPE CordbType::EnumerateTypeParameters(ICorDebugTypeEnum**
     m_pTypeEnum->QueryInterface(IID_ICorDebugTypeEnum, (void**)ppTyParEnum);
 
     LOG((LF_CORDB, LL_INFO1000000, "CordbType - EnumerateTypeParameters - IMPLEMENTED\n"));
-    printf("\nVIKAS_LOG_MON :: CordbType::EnumerateTypeParameters -> END");
     return S_OK;
 }
 
