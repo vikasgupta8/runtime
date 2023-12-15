@@ -278,8 +278,17 @@ HRESULT CordbProcess::GetHandle(HPROCESS* phProcessHandle)
 
 HRESULT CordbProcess::GetThread(DWORD dwThreadId, ICorDebugThread** ppThread)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - NOT IMPLEMENTED\n"));
-    return S_OK;
+    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - VIKAS IMPLEMENTED\n"));
+    HRESULT hr = S_OK;
+
+    CordbThread* thread    = FindThread(dwThreadId);
+    if (thread == NULL)
+        hr = E_INVALIDARG;
+
+    *ppThread = thread;
+    thread->AddRef();
+
+    return hr;
 }
 
 HRESULT CordbProcess::EnumerateObjects(ICorDebugObjectEnum** ppObjects)
@@ -524,8 +533,19 @@ HRESULT CordbProcess::IsRunning(BOOL* pbRunning)
 HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueued)
 {
     // conn->process_packet_from_queue();
-    *pbQueued = false;
-    LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - IMPLEMENTED\n"));
+        // Vikas impelemetation
+    ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
+    DWORD count = pReceivedPacketsToProcess->GetCount();
+    MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
+    //printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
+
+    if (req)
+       *pbQueued = true;
+
+    if (count == 10)
+    	*pbQueued = false;
+
+    LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - VIKAS IMPLEMENTED\n"));
     return S_OK;
 }
 

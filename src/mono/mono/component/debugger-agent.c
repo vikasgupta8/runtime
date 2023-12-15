@@ -3570,7 +3570,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	gboolean send_success = FALSE;
 	static int ecount;
 	int nevents;
-
+	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: process_event -> start with event = %d [%s]\n",event,event_to_string (event));
 	if (!agent_inited) {
 		PRINT_DEBUG_MSG (2, "Debugger agent not initialized yet: dropping %s\n", event_to_string (event));
 		return;
@@ -3848,6 +3848,8 @@ runtime_initialized (MonoProfiler *prof)
 	process_profiler_event (EVENT_KIND_VM_START, mono_thread_current ());
 	if (CHECK_PROTOCOL_VERSION (2, 59))
 		process_profiler_event (EVENT_KIND_ASSEMBLY_LOAD, (mono_get_corlib ()->assembly));
+	MonoInternalThread *thread = mono_thread_internal_current ();
+	process_profiler_event (EVENT_KIND_THREAD_START, thread);
 	if (agent_config.defer) {
 		ERROR_DECL (error);
 		start_debugger_thread_func (error);

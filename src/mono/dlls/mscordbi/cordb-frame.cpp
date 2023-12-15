@@ -238,7 +238,14 @@ HRESULT STDMETHODCALLTYPE CordbJITILFrame::RemapFunction(ULONG32 newILOffset)
 
 HRESULT STDMETHODCALLTYPE CordbJITILFrame::EnumerateTypeParameters(ICorDebugTypeEnum** ppTyParEnum)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbFrame - EnumerateTypeParameters - NOT IMPLEMENTED\n"));
+    LOG((LF_CORDB, LL_INFO100000, "CordbFrame - EnumerateTypeParameters - VIKAS IMPLEMENTED\n"));
+    CordbTypeEnum* pTypeEnum = new CordbTypeEnum(conn, NULL);
+    if (pTypeEnum == NULL)
+	return S_OK;
+
+    pTypeEnum->InternalAddRef();
+    pTypeEnum->QueryInterface(IID_ICorDebugTypeEnum, (void**)ppTyParEnum);
+
     return S_OK;
 }
 

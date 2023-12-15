@@ -139,6 +139,7 @@ HRESULT STDMETHODCALLTYPE CordbTypeEnum::Next(ULONG celt, ICorDebugType* values[
         m_pType->QueryInterface(IID_ICorDebugType, (void**)&values[0]);
         *pceltFetched = celt;
     }
+    *pceltFetched = 0;
     LOG((LF_CORDB, LL_INFO1000000, "CordbTypeEnum - Next - IMPLEMENTED\n"));
     return S_OK;
 }

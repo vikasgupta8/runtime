@@ -338,6 +338,13 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
         {
             case MDBGPROT_EVENT_KIND_VM_START:
             {
+		if (pCorDebugAppDomain == NULL)
+		{
+		        pCorDebugAppDomain = new CordbAppDomain(this, GetProcess());
+        		GetProcess()->Stop(false);
+		        m_pCordb->GetCallback()->CreateAppDomain(static_cast<ICorDebugProcess*>(GetProcess()),
+                                                           pCorDebugAppDomain);
+    		}
                 m_pCordb->GetCallback()->CreateProcess(static_cast<ICorDebugProcess*>(GetProcess()));
             }
             break;
@@ -565,7 +572,7 @@ int Connection::SendEvent(int cmd_set, int cmd, MdbgProtBuffer* sendbuf)
     return ret;
 }
 
-MONO_API HRESULT CoreCLRCreateCordbObject(int iDebuggerVersion, DWORD pid, HMODULE hmodTargetCLR, void** ppCordb)
+MONO_API DLLEXPORT HRESULT CoreCLRCreateCordbObject(int iDebuggerVersion, DWORD pid, HMODULE hmodTargetCLR, void** ppCordb)
 {
     *ppCordb = new Cordb(pid);
     return S_OK;
