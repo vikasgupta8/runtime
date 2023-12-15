@@ -245,12 +245,14 @@ void Connection::Receive()
 
         int iResult = m_socket->Receive((char*)recvbuf_header.buf, HEADER_LENGTH);
 
-        if (iResult == -1)
+	// This change is to avoid the debugger hung . Once the iResutl is zero, it means that other side is closed and doesnt exist 
+	if (iResult == -1 || iResult == 0)
         {
             m_dbgprot_buffer_free(&recvbuf_header);
             m_pCordb->GetCallback()->ExitProcess(static_cast<ICorDebugProcess*>(GetProcess()));
             break;
         }
+	/*
         while (iResult == 0)
         {
             LOG((LF_CORDB, LL_INFO100000, "transport_recv () sleep returned %d, expected %d.\n", iResult,
@@ -258,6 +260,7 @@ void Connection::Receive()
             iResult = m_socket->Receive((char*)recvbuf_header.buf, HEADER_LENGTH);
             Sleep(1000);
         }
+	*/
 
         MdbgProtHeader  header;
         m_dbgprot_decode_command_header(&recvbuf_header, &header);
@@ -570,6 +573,22 @@ int Connection::SendEvent(int cmd_set, int cmd, MdbgProtBuffer* sendbuf)
     SendPacket(outbuf);
     m_dbgprot_buffer_free(&outbuf);
     return ret;
+}
+
+MONO_API DLLEXPORT HRESULT CoreCLRCreateCordbObject3(int iDebuggerVersion, DWORD pid, LPCWSTR lpApplicationGroupId, LPCWSTR dacModulePath, HMODULE hmodTargetCLR,void** ppCordb)
+{
+    if (ppCordb == NULL )
+    {
+	return E_INVALIDARG;
+    }
+    if ((iDebuggerVersion < CorDebugVersion_2_0) ||
+        (iDebuggerVersion > CorDebugLatestVersion))
+    {
+        return E_INVALIDARG;
+    }
+    printf ("Giri: Entering %s\n", __func__);
+    *ppCordb = new Cordb(pid);
+    return S_OK;
 }
 
 MONO_API DLLEXPORT HRESULT CoreCLRCreateCordbObject(int iDebuggerVersion, DWORD pid, HMODULE hmodTargetCLR, void** ppCordb)

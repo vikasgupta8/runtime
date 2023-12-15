@@ -150,6 +150,11 @@
 
 #endif
 
+#include <dlfcn.h>
+
+static const char* RuntimeStartupSemaphoreName = "st";
+static const char* RuntimeContinueSemaphoreName = "co";
+
 static inline MonoType*
 mono_get_object_type_dbg (void)
 {
@@ -766,9 +771,281 @@ mono_debugger_is_disconnected (void)
 	return disconnected;
 }
 
+#pragma pack(push,1)
+// When creating the semaphore name on Mac running in a sandbox, We reference this structure as a byte array
+// in order to encode its data into a string. Its important to make sure there is no padding between the fields
+// and also at the end of the buffer. Hence, this structure is defined inside a pack(1)
+typedef struct UnambiguousProcessDescriptor
+{
+    uint64_t m_disambiguationKey;
+    DWORD m_processId;
+}UnambiguousProcessDescriptor;
+#pragma pack(pop)
+
+static void SetLastError( DWORD dwLastError)
+{
+	// Reuse errno to store last error
+	errno = dwLastError;
+};
+
+/*++
+ Function:
+  GetProcessIdDisambiguationKey
+
+  Get a numeric value that can be used to disambiguate between processes with the same PID,
+  provided that one of them is still running. The numeric value can mean different things
+  on different platforms, so it should not be used for any other purpose. Under the hood,
+  it is implemented based on the creation time of the process.
+--*/
+static BOOL GetProcessIdDisambiguationKey(uint32_t processId, uint64_t *disambiguationKey)
+{
+    if (disambiguationKey == NULL )
+    {
+        ASSERT(!"disambiguationKey argument cannot be null!");
+        return FALSE;
+    }
+
+    *disambiguationKey = 0;
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
+
+    // On OS X, we return the process start time expressed in Unix time (the number of seconds
+    // since the start of the Unix epoch).
+    struct kinfo_proc info = {};
+    size_t size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, processId };
+    int ret = ::sysctl(mib, sizeof(mib)/sizeof(*mib), &info, &size, nullptr, 0);
+
+    if (ret == 0)
+    {
+#if defined(__APPLE__)
+        timeval procStartTime = info.kp_proc.p_starttime;
+#else // __FreeBSD__
+        timeval procStartTime = info.ki_start;
+#endif
+        long secondsSinceEpoch = procStartTime.tv_sec;
+
+        *disambiguationKey = secondsSinceEpoch;
+        return TRUE;
+    }
+    else
+    {
+        ASSERT(!"Failed to get start time of a process.");
+        return FALSE;
+    }
+
+#elif defined(__NetBSD__)
+
+    // On NetBSD, we return the process start time expressed in Unix time (the number of seconds
+    // since the start of the Unix epoch).
+    kvm_t *kd;
+    int cnt;
+    struct kinfo_proc2 *info;
+
+    kd = kvm_open(nullptr, nullptr, nullptr, KVM_NO_FILES, "kvm_open");
+    if (kd == nullptr)
+    {
+        ASSERT(!"Failed to get start time of a process.");
+        return FALSE;
+    }
+
+    info = kvm_getproc2(kd, KERN_PROC_PID, processId, sizeof(struct kinfo_proc2), &cnt);
+    if (info == nullptr || cnt < 1)
+    {
+        kvm_close(kd);
+        ASSERT(!"Failed to get start time of a process.");
+        return FALSE;
+    }
+
+    kvm_close(kd);
+
+    long secondsSinceEpoch = info->p_ustart_sec;
+    *disambiguationKey = secondsSinceEpoch;
+
+    return TRUE;
+#elif HAVE_PROCFS_STAT || defined (__s390x__)
+		// Here we read /proc/<pid>/stat file to get the start time for the process.
+	// We return this value (which is expressed in jiffies since boot time).
+
+	// Making something like: /proc/123/stat
+	char stat_file_name [64];
+	snprintf (stat_file_name, sizeof (stat_file_name), "/proc/%d/stat", processId);
+
+	FILE *stat_file = fopen (stat_file_name, "r");
+	if (!stat_file) {
+		ASSERT (!"Failed to get start time of a process, fopen failed.");
+		return false;
+	}
+
+	char *line = NULL;
+	size_t line_len = 0;
+	if (getline (&line, &line_len, stat_file) == -1)
+	{
+		ASSERT (!"Failed to get start time of a process, getline failed.");
+		return false;
+	}
+
+	unsigned long long start_time;
+
+	// According to `man proc`, the second field in the stat file is the filename of the executable,
+	// in parentheses. Tokenizing the stat file using spaces as separators breaks when that name
+	// has spaces in it, so we start using sscanf_s after skipping everything up to and including the
+	// last closing paren and the space after it.
+	char *scan_start_position = strrchr (line, ')');
+	if (!scan_start_position || scan_start_position [1] == '\0') {
+		ASSERT (!"Failed to parse stat file contents with strrchr.");
+		return false;
+	}
+
+	scan_start_position += 2;
+
+	// All the format specifiers for the fields in the stat file are provided by 'man proc'.
+	int result_sscanf = sscanf (scan_start_position,
+		"%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %*d %*d %llu \n",
+		&start_time);
+
+	if (result_sscanf != 1) {
+		ASSERT (!"Failed to parse stat file contents with sscanf.");
+		return false;
+	}
+
+	free (line);
+	fclose (stat_file);
+
+	*disambiguationKey= (uint64_t)start_time;
+	return true;
+
+#else
+    // If this is not OS X and we don't have /proc, we just return FALSE.
+    WARN("GetProcessIdDisambiguationKey was called but is not implemented on this platform!");
+    return FALSE;
+#endif
+}
+/*
+//bool PAL_NotifyRuntimeStarted();
+static void invoke_PAL_NotifyRuntimeStarted()
+{
+       static int * (*func)(void);
+       printf ("Giri Entering %s\n", __func__);
+       //void *handle = dlopen("libmscordbi.so", RTLD_LAZY);
+       void *handle = dlopen("/home/giridhar/runtime_latest/runtime/artifacts/bin/mono/linux.s390x.Debug/libmscordbi.so", RTLD_NOW);
+       if (!handle){
+               printf ("dlopen failed\n");
+               perror("dlopen failed in invoke_PAL_NotifyRuntimeStarted");
+        }
+       func = (int *(*)(void))dlsym(handle, "PAL_NotifyRuntimeStarted");
+       if (!func)
+               perror("dlsym failed in invoke_PAL_NotifyRuntimeStarted");
+       printf("the function address is 0x%x\n", func);
+       func();
+       dlclose(handle);
+       printf ("Giri exiting %s\n", __func__);
+}
+*/
+static void CreateSemaphoreName(char semName[CLR_SEM_MAX_NAMELEN], const char *semaphoreName, const UnambiguousProcessDescriptor unambiguousProcessDescriptor)
+{
+    int length = 0;
+    length = sprintf_s ( semName, CLR_SEM_MAX_NAMELEN, RuntimeSemaphoreNameFormat, semaphoreName, HashSemaphoreName(unambiguousProcessDescriptor.m_processId, unambiguousProcessDescriptor.m_disambiguationKey));
+    ASSERT(length > 0 && length < CLR_SEM_MAX_NAMELEN );
+}
+
+/*++
+    NotifyRuntimeStarted
+
+    Signals the debugger waiting for runtime startup notification to continue and
+    waits until the debugger signals us to continue.
+
+Parameters:
+    None
+
+Return value:
+    TRUE - successfully launched by debugger, FALSE - not launched or some failure in the handshake
+--*/
+static BOOL NotifyRuntimeStarted()
+{
+    printf ("Giri Entering %s\n", __func__);
+    char startupSemName[CLR_SEM_MAX_NAMELEN];
+    char continueSemName[CLR_SEM_MAX_NAMELEN];
+    sem_t *startupSem = SEM_FAILED;
+    sem_t *continueSem = SEM_FAILED;
+    BOOL launched = FALSE;
+
+    uint64_t processIdDisambiguationKey = 0;
+    int pid = (int )getpid();
+    GetProcessIdDisambiguationKey(pid, &processIdDisambiguationKey);
+
+    // If GetProcessIdDisambiguationKey failed for some reason, it should set the value
+    // to 0. We expect that anyone else making the semaphore name will also fail and thus
+    // will also try to use 0 as the value.
+    ASSERT(ret == TRUE || processIdDisambiguationKey == 0);
+
+    UnambiguousProcessDescriptor unambiguousProcessDescriptor;
+    unambiguousProcessDescriptor.m_processId = pid;
+    unambiguousProcessDescriptor.m_disambiguationKey = processIdDisambiguationKey;
+
+    CreateSemaphoreName(startupSemName, RuntimeStartupSemaphoreName, unambiguousProcessDescriptor);
+    CreateSemaphoreName(continueSemName, RuntimeContinueSemaphoreName, unambiguousProcessDescriptor);
+
+    TRACE("NotifyRuntimeStarted opening continue '%s' startup '%s'\n", continueSemName, startupSemName);
+
+    // Open the debugger startup semaphore. If it doesn't exists, then we do nothing and return
+    startupSem = sem_open(startupSemName, 0);
+    if (startupSem == SEM_FAILED)
+    {
+        TRACE("sem_open(%s) failed: %d (%s)\n", startupSemName, errno, strerror(errno));
+        goto exit;
+    }
+
+    continueSem = sem_open(continueSemName, 0);
+    if (continueSem == SEM_FAILED)
+    {
+        ASSERT("sem_open(%s) failed: %d (%s)\n", continueSemName, errno, strerror(errno));
+        goto exit;
+    }
+
+    // Wake up the debugger waiting for startup
+    if (sem_post(startupSem) != 0)
+    {
+        ASSERT("sem_post(startupSem) failed: errno is %d (%s)\n", errno, strerror(errno));
+        goto exit;
+    }
+
+    // Now wait until the debugger's runtime startup notification is finished
+    while (sem_wait(continueSem) != 0)
+    {
+        if (EINTR == errno)
+        {
+            TRACE("sem_wait() failed with EINTR; re-waiting");
+            continue;
+        }
+        ASSERT("sem_wait(continueSem) failed: errno is %d (%s)\n", errno, strerror(errno));
+        goto exit;
+    }
+
+    // Returns that the runtime was successfully launched for debugging
+    launched = TRUE;
+
+exit:
+    if (startupSem != SEM_FAILED)
+    {
+        sem_close(startupSem);
+    }
+    if (continueSem != SEM_FAILED)
+    {
+        sem_close(continueSem);
+    }
+    printf ("Giri Exiting %s\n", __func__);
+    return launched;
+}
+
 void
 mono_debugger_agent_init_internal (void)
 {
+	printf ("Giri Entering %s\n", __func__);
+        //invoke_PAL_NotifyRuntimeStarted();
+        NotifyRuntimeStarted();
+        printf ("Giri after invoking NotifyRuntimeStarted \n");
+        //__builtin_trap();
 	if (!agent_config.enabled)
 		return;
 
@@ -841,6 +1118,7 @@ mono_debugger_agent_init_internal (void)
 
 	if (!agent_config.onuncaught && !agent_config.onthrow)
 		finish_agent_init (TRUE);
+	printf ("Giri Exiting %s\n", __func__);
 }
 
 /*
@@ -11101,6 +11379,7 @@ debugger_agent_enabled (void)
 void
 debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 {
+    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> START");
 	fn_table->parse_options = debugger_agent_parse_options;
 	fn_table->init = mono_debugger_agent_init_internal;
 	fn_table->breakpoint_hit = debugger_agent_breakpoint_hit;
@@ -11118,6 +11397,7 @@ debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 	fn_table->transport_handshake = debugger_agent_transport_handshake;
 	fn_table->send_enc_delta = send_enc_delta;
 	fn_table->debugger_enabled = debugger_agent_enabled;
+    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> END");
 }
 
 #endif /* DISABLE_SDB */

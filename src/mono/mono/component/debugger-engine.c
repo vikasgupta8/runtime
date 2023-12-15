@@ -204,8 +204,10 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 			mini_get_interp_callbacks_api ()->set_breakpoint (ji, inst->ip);
 		} else {
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
+			printf ("Giri invoking mono_arch_set_breakpoint\n");
 			mono_arch_set_breakpoint (ji, inst->ip);
 #else
+			printf ("Giri : NOT IMPLEMENTED mono_arch_set_breakpoint\n");
 			NOT_IMPLEMENTED;
 #endif
 		}
@@ -366,6 +368,7 @@ collect_domain_bp (gpointer key, gpointer value, gpointer user_data)
 	jit_mm_lock (jit_mm);
 	g_hash_table_iter_init (&iter, jit_mm->seq_points);
 	while (g_hash_table_iter_next (&iter, (void**)&m, (void**)&seq_points)) {
+		printf ("\nGiri -> ud-bp-method name = %s\t m->method name = %s\n", ud->bp->method->name, m->name);
 		if (bp_matches_method (ud->bp, m)) {
 			/* Save the info locally to simplify the code inside the domain lock */
 			g_ptr_array_add (ud->methods, m);

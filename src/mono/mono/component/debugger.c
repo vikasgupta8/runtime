@@ -27,6 +27,7 @@ debugger_available (void)
 MonoComponentDebugger *
 mono_component_debugger_init (void)
 {
+    	printf("\nVIKAS_MONO :: mono_component_debugger_init -> START");
 	debugger_agent_add_function_pointers (&fn_table);
 #if defined(HOST_BROWSER)
 	mini_wasm_debugger_add_function_pointers (&fn_table);
@@ -34,5 +35,6 @@ mono_component_debugger_init (void)
 #if defined(HOST_WASI)
 	mini_wasi_debugger_add_function_pointers (&fn_table);
 #endif
+    	printf("\nVIKAS_MONO :: mono_component_debugger_init -> END");
 	return &fn_table;
 }
