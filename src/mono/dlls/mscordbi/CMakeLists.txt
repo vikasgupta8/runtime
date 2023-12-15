@@ -95,7 +95,7 @@ set(mscorbi_sources "${mscorbi_sources};${VERSION_FILE_RC_PATH}") # this is gene
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/socket-dbi)
-
+add_subdirectory(${CLR_DIR}/minipal minipal)
 include(${CLR_ENG_NATIVE_DIR}/configurecompiler.cmake)
 
 if (CLR_CMAKE_HOST_UNIX)
@@ -154,10 +154,11 @@ set(COREDBI_LIBRARIES
 if(CLR_CMAKE_HOST_UNIX)
     list(APPEND COREDBI_LIBRARIES
         ${START_WHOLE_ARCHIVE}
-        palrt
         coreclrpal
-        ${END_WHOLE_ARCHIVE}
+        palrt
+	coreclrminipal
         nativeresourcestring
+        ${END_WHOLE_ARCHIVE}
     )
 endif()
 

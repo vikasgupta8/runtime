@@ -628,7 +628,7 @@ HRESULT STDMETHODCALLTYPE CordbObjectValue::GetFieldValue(ICorDebugClass*  pClas
             m_dbgprot_buffer_add_id(&localbuf, m_debuggerId);
             m_dbgprot_buffer_add_int(&localbuf, fieldDef);
 
-            int cmdId = conn->SendEvent(MDBGPROT_CMD_SET_OBJECT_REF, MDBGPROT_CMD_OBJECT_REF_GET_VALUES_ICORDBG, &localbuf);
+            int cmdId = conn->SendEvent(MDBGPROT_CMD_SET_OBJECT_REF, MDBGPROT_CMD_TYPE_GET_VALUES_BY_FIELD_TOKEN, &localbuf);
             m_dbgprot_buffer_free(&localbuf);
 
             ReceivedReplyPacket* received_reply_packet = conn->GetReplyWithError(cmdId);
