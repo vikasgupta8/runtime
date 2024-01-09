@@ -172,6 +172,7 @@ public:
 class Cordb : public ICorDebug, public ICorDebugRemote, public CordbBaseMono
 {
     ICorDebugManagedCallback* m_pCallback;
+    ICorDebugManagedCallback2* m_pCallback2;
     CordbProcess*             m_pProcess;
     DWORD                     m_nPID;
 public:
@@ -182,6 +183,10 @@ public:
     ICorDebugManagedCallback* GetCallback() const
     {
         return m_pCallback;
+    }
+    ICorDebugManagedCallback2* GetCallback2() const
+    {
+        return m_pCallback2;
     }
     Cordb(DWORD pid);
     ULONG STDMETHODCALLTYPE AddRef(void)

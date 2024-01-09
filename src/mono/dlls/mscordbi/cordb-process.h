@@ -33,6 +33,7 @@ class CordbProcess : public CordbBaseMono,
     CordbAppDomainEnum* m_pAppDomainEnum;
     Cordb*              m_pCordb;
     BOOL                m_bIsJustMyCode;
+    BOOL		m_bEventQueued;
     ArrayList*          m_pTypeMapArray; //TODO: define a better data structure to find CordbType
     MapSHashWithRemove<mdToken, CordbClass*>    m_classMap;
 public:
@@ -49,6 +50,14 @@ public:
     const char* GetClassName()
     {
         return "CordbProcess";
+    }
+    BOOL IsQueuedEvent()
+    {
+	return m_bEventQueued;
+    }
+    void SetQueuedEvent(BOOL bEventQueued)
+    {
+	m_bEventQueued = bEventQueued;
     }
     Cordb* GetCordb() const
     {

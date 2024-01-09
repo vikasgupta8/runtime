@@ -186,6 +186,7 @@ HRESULT STDMETHODCALLTYPE CordbThread::GetUserState(CorDebugUserState* pState)
 HRESULT STDMETHODCALLTYPE CordbThread::GetCurrentException(ICorDebugValue** ppExceptionObject)
 {
     LOG((LF_CORDB, LL_INFO1000000, "CordbThread - GetCurrentException - IMPLEMENTED\n"));
+    printf("\nVIKAS_LOG_MONO :: CordbThread::GetCurrentException -> NOT IMPLEMENTED");
 
     return S_FALSE;
 }

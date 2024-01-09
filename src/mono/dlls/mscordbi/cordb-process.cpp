@@ -31,6 +31,7 @@ CordbProcess::CordbProcess(Cordb* cordb) : CordbBaseMono(NULL)
     m_pSteppers      = new ArrayList();
     this->m_pCordb   = cordb;
     m_bIsJustMyCode  = false;
+    m_bEventQueued   = false;
     m_pSemReadWrite  = new UTSemReadWrite();
     m_pTypeMapArray  = new ArrayList();
     for (DWORD i = 0; i < CordbTypeKindTotal; i++)
@@ -533,17 +534,22 @@ HRESULT CordbProcess::IsRunning(BOOL* pbRunning)
 HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueued)
 {
     // conn->process_packet_from_queue();
-        // Vikas impelemetation
-    ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
+    // Vikas impelemetation
+    /*ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
     DWORD count = pReceivedPacketsToProcess->GetCount();
-    MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
-    //printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
 
+    MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
     if (req)
        *pbQueued = true;
 
     if (count == 10)
     	*pbQueued = false;
+    */
+
+    if (IsQueuedEvent())
+       *pbQueued = true;
+    else
+       *pbQueued = false;
 
     LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - VIKAS IMPLEMENTED\n"));
     return S_OK;

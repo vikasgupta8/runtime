@@ -58,6 +58,14 @@ HRESULT Cordb::SetManagedHandler(ICorDebugManagedCallback* pCallback)
     LOG((LF_CORDB, LL_INFO1000000, "Cordb - SetManagedHandler - IMPLEMENTED\n"));
     this->m_pCallback = pCallback;
     this->GetCallback()->AddRef();
+
+
+    pCallback->QueryInterface(IID_ICorDebugManagedCallback2, (void **)&m_pCallback2);
+    if (m_pCallback2 == NULL)
+    {
+        printf("\nVIKAS_MONO :: Cordb::SetManagedHandler -> m_pCallback2 is NULL");
+    }
+    this->GetCallback2()->AddRef();
     return S_OK;
 }
 
@@ -117,6 +125,7 @@ HRESULT Cordb::CanLaunchOrAttach(DWORD dwProcessId, BOOL win32DebuggingEnabled)
 Cordb::Cordb(DWORD PID) : CordbBaseMono(NULL)
 {
     m_pCallback     = NULL;
+    m_pCallback2     = NULL;
     m_pSemReadWrite = new UTSemReadWrite();
     m_nPID = PID;
 
@@ -132,6 +141,7 @@ Cordb::Cordb(DWORD PID) : CordbBaseMono(NULL)
 Cordb::~Cordb()
 {
     this->GetCallback()->Release();
+    this->GetCallback2()->Release();
     m_pProcess->InternalRelease();
     delete m_pSemReadWrite;
 #ifdef LOGGING
@@ -284,6 +294,7 @@ void Connection::Receive()
         }
 
         dbg_lock();
+	m_pProcess->SetQueuedEvent(false);
         if (header.flags == REPLY_PACKET)
         {
             ReceivedReplyPacket* rp = new ReceivedReplyPacket(header.error, header.error_2, header.id, recvbuf);
@@ -292,6 +303,7 @@ void Connection::Receive()
         else
         {
             m_pReceivedPacketsToProcess->Append(recvbuf);
+	    m_pProcess->SetQueuedEvent(true);
         }
         dbg_unlock();
     }
@@ -337,6 +349,7 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
         LOG((LF_CORDB, LL_INFO100000, "Received %d %d events %s, suspend=%d\n", i, nevents,
              m_dbgprot_event_to_string(etype), spolicy));
 
+        //printf("\nVIKAS_MONO :: Connection::ProcessPacketInternal -> etype = %d",etype);
         switch (etype)
         {
             case MDBGPROT_EVENT_KIND_VM_START:
@@ -420,6 +433,37 @@ void Connection::ProcessPacketInternal(MdbgProtBuffer* recvbuf)
                 m_pCordb->GetCallback()->StepComplete(pCorDebugAppDomain, thread, stepper, STEP_NORMAL);
             }
             break;
+            case MDBGPROT_EVENT_KIND_EXCEPTION:
+	    {
+		if (pCorDebugAppDomain == NULL)
+                {
+                    pCorDebugAppDomain = new CordbAppDomain(this, GetProcess());
+                    GetProcess()->Stop(false);
+                    m_pCordb->GetCallback()->CreateAppDomain(static_cast<ICorDebugProcess*>(GetProcess()),
+                                                           pCorDebugAppDomain);
+                }
+                CordbThread* thread    = GetProcess()->FindThread(thread_id);
+                if (thread == NULL)
+                {
+                    thread = new CordbThread(this, GetProcess(), thread_id);
+                    GetProcess()->Stop(false);
+                    m_pCordb->GetCallback()->CreateThread(pCorDebugAppDomain, thread);
+                }
+
+		ICorDebugFrame* pFrame;
+		HRESULT hr = thread->GetActiveFrame(&pFrame);
+		ULONG32 nOffset = 1; 
+		CorDebugExceptionCallbackType dwEventType = DEBUG_EXCEPTION_FIRST_CHANCE;
+		DWORD dwFlags = 1;
+		if(pFrame == NULL)
+		{
+        	    printf("\nVIKAS_MONO :: Connection::ProcessPacketInternal ->case MDBGPROT_EVENT_KIND_EXCEPTION pFrame is NULL");
+		}
+
+		//m_pCordb->GetCallback()->Exception(pCorDebugAppDomain, thread, true);
+		m_pCordb->GetCallback2()->Exception(pCorDebugAppDomain, thread, pFrame, nOffset, dwEventType, dwFlags);
+	    }
+	    break;
             default:
             {
                 LOG((LF_CORDB, LL_INFO100000, "Not implemented - %s\n", m_dbgprot_event_to_string(etype)));
@@ -467,6 +511,7 @@ void Connection::LoopSendReceive()
     EnableEvent(MDBGPROT_EVENT_KIND_THREAD_DEATH);
     EnableEvent(MDBGPROT_EVENT_KIND_APPDOMAIN_UNLOAD);
     EnableEvent(MDBGPROT_EVENT_KIND_USER_BREAK);
+    EnableEvent(MDBGPROT_EVENT_KIND_EXCEPTION);
     EnableEvent(MDBGPROT_EVENT_KIND_USER_LOG);
     EnableEvent(MDBGPROT_EVENT_KIND_VM_DEATH);
 

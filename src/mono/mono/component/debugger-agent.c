@@ -863,7 +863,7 @@ static BOOL GetProcessIdDisambiguationKey(uint32_t processId, uint64_t *disambig
     *disambiguationKey = secondsSinceEpoch;
 
     return TRUE;
-#elif HAVE_PROCFS_STAT || defined (__s390x__)
+#elif HAVE_PROCFS_STAT || defined (__s390x__) || defined (__powerpc64__)
 		// Here we read /proc/<pid>/stat file to get the start time for the process.
 	// We return this value (which is expressed in jiffies since boot time).
 
@@ -3848,7 +3848,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	gboolean send_success = FALSE;
 	static int ecount;
 	int nevents;
-	PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: process_event -> start with event = %d [%s]\n",event,event_to_string (event));
+	//PRINT_DEBUG_MSG(2, "\nVIKAS_LOG_MONO :: process_event -> start with event = %d [%s]\n",event,event_to_string (event));
 	if (!agent_inited) {
 		PRINT_DEBUG_MSG (2, "Debugger agent not initialized yet: dropping %s\n", event_to_string (event));
 		return;
@@ -3893,6 +3893,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		}
 	}
 
+        //printf("\nVIKAS_MONO :: process_event -> START with event = %d[%s]",event,event_to_string (event));
 	if (event == EVENT_KIND_VM_START)
 		suspend_policy = agent_config.suspend ? SUSPEND_POLICY_ALL : SUSPEND_POLICY_NONE;
 
@@ -7870,7 +7871,7 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		MonoDomain *domain;
 		Modifier *modifier;
 
-		event_kind = decode_byte (p, &p, end);
+		event_kind = decode_byte (p, &p, end); //event kind
 		suspend_policy = decode_byte (p, &p, end);
 		nmodifiers = decode_byte (p, &p, end);
 
@@ -11379,7 +11380,6 @@ debugger_agent_enabled (void)
 void
 debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 {
-    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> START");
 	fn_table->parse_options = debugger_agent_parse_options;
 	fn_table->init = mono_debugger_agent_init_internal;
 	fn_table->breakpoint_hit = debugger_agent_breakpoint_hit;
@@ -11397,7 +11397,6 @@ debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 	fn_table->transport_handshake = debugger_agent_transport_handshake;
 	fn_table->send_enc_delta = send_enc_delta;
 	fn_table->debugger_enabled = debugger_agent_enabled;
-    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> END");
 }
 
 #endif /* DISABLE_SDB */
