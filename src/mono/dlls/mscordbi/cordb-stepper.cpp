@@ -122,6 +122,7 @@ HRESULT STDMETHODCALLTYPE CordbStepper::StepOut(void)
         ReceivedReplyPacket* received_reply_packet = conn->GetReplyWithError(cmdId);
         CHECK_ERROR_RETURN_FALSE(received_reply_packet);
         MdbgProtBuffer* pReply = received_reply_packet->Buffer();
+	m_debuggerId = m_dbgprot_decode_id(pReply->p, &pReply->p, pReply->end);
     }
     EX_CATCH_HRESULT(hr);
     return hr;

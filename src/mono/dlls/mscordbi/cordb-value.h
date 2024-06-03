@@ -80,6 +80,10 @@ public:
         return "CordbReferenceValue";
     }
     ~CordbReferenceValue();
+    int GetDebuggerId() const
+    {
+	    return m_debuggerId;
+    }
     HRESULT STDMETHODCALLTYPE GetType(CorElementType* pType);
     HRESULT STDMETHODCALLTYPE GetSize(ULONG32* pSize);
     HRESULT STDMETHODCALLTYPE GetAddress(CORDB_ADDRESS* pAddress);
@@ -251,7 +255,8 @@ class CordbValueEnum : public CordbBaseMono,
     long m_nThreadDebuggerId;
     long m_nFrameDebuggerId;
     int  m_nCurrentValuePos;
-    int  m_nCount;
+    int  m_nParamCount;
+    int  m_nLocalCount;
     ILCodeKind m_nFlags;
     bool m_bIsArgument;
     ICorDebugValue** m_pValues;

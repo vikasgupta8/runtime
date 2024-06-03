@@ -138,7 +138,8 @@ HRESULT STDMETHODCALLTYPE CordbThread::InterceptCurrentException(
 
 HRESULT STDMETHODCALLTYPE CordbThread::GetProcess(ICorDebugProcess** ppProcess)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbThread - GetProcess - NOT IMPLEMENTED\n"));
+    LOG((LF_CORDB, LL_INFO100000, "CordbThread - GetProcess - IMPLEMENTED\n"));
+    m_pProcess->QueryInterface(IID_ICorDebugProcess, (void**)ppProcess);
     return S_OK;
 }
 

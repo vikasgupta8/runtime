@@ -238,7 +238,6 @@ HRESULT STDMETHODCALLTYPE CordbJITILFrame::RemapFunction(ULONG32 newILOffset)
 
 HRESULT STDMETHODCALLTYPE CordbJITILFrame::EnumerateTypeParameters(ICorDebugTypeEnum** ppTyParEnum)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbFrame - EnumerateTypeParameters - VIKAS IMPLEMENTED\n"));
     CordbTypeEnum* pTypeEnum = new CordbTypeEnum(conn, NULL);
     if (pTypeEnum == NULL)
 	return S_OK;
@@ -300,7 +299,7 @@ HRESULT STDMETHODCALLTYPE CordbJITILFrame::SetIP(ULONG32 nOffset)
 HRESULT STDMETHODCALLTYPE CordbJITILFrame::EnumerateLocalVariables(ICorDebugValueEnum** ppValueEnum)
 {
     LOG((LF_CORDB, LL_INFO100000, "CordbFrame - EnumerateLocalVariables - IMPLEMENTED\n"));
-    CordbValueEnum *pCordbValueEnum = new CordbValueEnum(conn, m_pThread->GetThreadId(), false, m_debuggerFrameId);
+    CordbValueEnum *pCordbValueEnum = new CordbValueEnum(conn, m_pThread->GetThreadId(), m_debuggerFrameId, false);
     return pCordbValueEnum->QueryInterface(IID_ICorDebugValueEnum, (void**)ppValueEnum);
 }
 
@@ -323,6 +322,23 @@ HRESULT STDMETHODCALLTYPE CordbJITILFrame::GetLocalVariable(DWORD dwIndex, ICorD
         CHECK_ERROR_RETURN_FALSE(received_reply_packet);
         MdbgProtBuffer* pReply = received_reply_packet->Buffer();
         hr = CordbObjectValue::CreateCordbValue(conn, pReply, ppValue);
+/*
+	ICorDebugClass *pClass;
+	ICorDebugValue2 *pValue2;
+	ICorDebugType *pType;
+	ICorDebugModule *pModule;
+	(*ppValue)->QueryInterface(IID_ICorDebugValue2, (LPVOID *) &pValue2);
+	pValue2->GetExactType(&pType);
+	pType->GetClass(&pClass);
+	pClass->GetModule(&pModule);
+
+	WCHAR name[2048];
+	ULONG32 name_len = 0;
+	pModule->GetName(2048, &name_len, name);
+	fprintf(stderr,"\nVIKAS_MONO :: CordbJITILFrame::GetLocalVariable -> ppValue moduleName = %s",name);
+	for (int i =0; i<112;i++)
+		fprintf(stderr,"%c",name[i]);
+*/		
     }
     EX_CATCH_HRESULT(hr);
     return hr;

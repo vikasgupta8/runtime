@@ -368,7 +368,7 @@ collect_domain_bp (gpointer key, gpointer value, gpointer user_data)
 	jit_mm_lock (jit_mm);
 	g_hash_table_iter_init (&iter, jit_mm->seq_points);
 	while (g_hash_table_iter_next (&iter, (void**)&m, (void**)&seq_points)) {
-		printf ("\nGiri -> ud-bp-method name = %s\t m->method name = %s\n", ud->bp->method->name, m->name);
+		//printf ("\nGiri -> ud-bp-method name = %s\t m->method name = %s\n", ud->bp->method->name, m->name);
 		if (bp_matches_method (ud->bp, m)) {
 			/* Save the info locally to simplify the code inside the domain lock */
 			g_ptr_array_add (ud->methods, m);

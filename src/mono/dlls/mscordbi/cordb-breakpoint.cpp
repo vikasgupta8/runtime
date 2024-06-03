@@ -33,12 +33,18 @@ HRESULT CordbFunctionBreakpoint::GetFunction(ICorDebugFunction** ppFunction)
 
 HRESULT CordbFunctionBreakpoint::GetOffset(ULONG32* pnOffset)
 {
+    *pnOffset = (ULONG32)m_offset;
     LOG((LF_CORDB, LL_INFO100000, "CordbFunctionBreakpoint - GetOffset - NOT IMPLEMENTED\n"));
-    return E_NOTIMPL;
+    return S_OK;
 }
 
 HRESULT CordbFunctionBreakpoint::Activate(BOOL bActive)
 {
+    if (bActive == (m_bActive == true) )
+    {
+        return S_OK;
+    }
+
     m_bActive = bActive;
     if (bActive)
     {

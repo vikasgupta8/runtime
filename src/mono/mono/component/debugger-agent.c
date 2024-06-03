@@ -863,7 +863,7 @@ static BOOL GetProcessIdDisambiguationKey(uint32_t processId, uint64_t *disambig
     *disambiguationKey = secondsSinceEpoch;
 
     return TRUE;
-#elif HAVE_PROCFS_STAT || defined (__s390x__)
+#elif HAVE_PROCFS_STAT || defined (__s390x__) || defined (__powerpc64__)
 		// Here we read /proc/<pid>/stat file to get the start time for the process.
 	// We return this value (which is expressed in jiffies since boot time).
 
@@ -963,7 +963,6 @@ Return value:
 --*/
 static BOOL NotifyRuntimeStarted()
 {
-    printf ("Giri Entering %s\n", __func__);
     char startupSemName[CLR_SEM_MAX_NAMELEN];
     char continueSemName[CLR_SEM_MAX_NAMELEN];
     sem_t *startupSem = SEM_FAILED;
@@ -1034,17 +1033,14 @@ exit:
     {
         sem_close(continueSem);
     }
-    printf ("Giri Exiting %s\n", __func__);
     return launched;
 }
 
 void
 mono_debugger_agent_init_internal (void)
 {
-	printf ("Giri Entering %s\n", __func__);
         //invoke_PAL_NotifyRuntimeStarted();
         NotifyRuntimeStarted();
-        printf ("Giri after invoking NotifyRuntimeStarted \n");
         //__builtin_trap();
 	if (!agent_config.enabled)
 		return;
@@ -1118,7 +1114,6 @@ mono_debugger_agent_init_internal (void)
 
 	if (!agent_config.onuncaught && !agent_config.onthrow)
 		finish_agent_init (TRUE);
-	printf ("Giri Exiting %s\n", __func__);
 }
 
 /*
@@ -3433,8 +3428,7 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls, gboolean f
 			}
 		}
 
-		if (i >= tls->frame_count)
-			f->id = mono_atomic_inc_i32 (&frame_id);
+		f->id = findex;
 #else //keep the same behavior that we have for wasm before start using debugger-agent
 		f->id = findex+1;
 #endif
@@ -5491,7 +5485,18 @@ buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDomain *domain,
 			}
 			buffer_add_objid (buf, obj);
 			if (CHECK_ICORDBG (TRUE))
+			{
+				if(t->type == MONO_TYPE_STRING)
+				{
+					ERROR_DECL (error);
+					MonoString* stringObject = *(MonoString**)addr;
+					const char* stringValue = mono_string_to_utf8_checked_internal (stringObject, error);
+
+					const char* stringValueobj = mono_string_to_utf8_checked_internal ((MonoString*)obj, error);
+
+				}
 				buffer_add_long (buf, (gssize) obj);
+			}
 		}
 		break;
 	handle_vtype:
@@ -6193,7 +6198,6 @@ add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo
 		addr = (guint8 *)mono_arch_context_get_int_reg (ctx, reg);
 		addr += (gint32)var->offset;
 
-		//PRINT_MSG ("[R%d+%d] = %p\n", reg, var->offset, addr);
 
 		buffer_add_value_full (buf, t, addr, domain, as_vtype, NULL, 1);
 		break;
@@ -6680,6 +6684,9 @@ mono_do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, gu
 		return ERR_INVALID_ARGUMENT;
 
 	nargs = decode_int (p, &p, end);
+	if(sig->hasthis)
+		nargs--;
+
 	if (nargs != sig->param_count)
 		return ERR_INVALID_ARGUMENT;
 	/* Use alloca to get gc tracking */
@@ -7700,10 +7707,10 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 	case MDBGPROT_CMD_VM_READ_MEMORY: {
 		guint8* memory = (guint8*)GINT_TO_POINTER (decode_long (p, &p, end));
 		int size = decode_int (p, &p, end);
-		if (!valid_memory_address(memory, size))
+		if (!valid_memory_address(&memory, size))
 			return ERR_INVALID_ARGUMENT;		
 		PRINT_DEBUG_MSG (1, "MDBGPROT_CMD_VM_READ_MEMORY - [%p] - size - %d\n", memory, size);
-		buffer_add_byte_array (buf, memory, size);
+		buffer_add_byte_array (buf, (uint8_t *)&memory, size);
 		break;
 	}
 	case MDBGPROT_CMD_VM_GET_OBJECT_ID_BY_ADDRESS: {
@@ -8685,13 +8692,13 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		// FIXME: byref
 
 		MonoTypeNameFormat format = MONO_TYPE_NAME_FORMAT_FULL_NAME;
-		if (CHECK_PROTOCOL_VERSION(2, 61))
-			format = (MonoTypeNameFormat) decode_int (p, &p, end);
+		//if (CHECK_PROTOCOL_VERSION(2, 61))
+		//	format = (MonoTypeNameFormat) decode_int (p, &p, end);
 		name = mono_type_get_name_full (m_class_get_byval_arg (klass), format);
 		buffer_add_string (buf, name);
 		g_free (name);
 		buffer_add_assemblyid (buf, domain, m_class_get_image (klass)->assembly);
-		buffer_add_moduleid (buf, domain, m_class_get_image (klass));
+		//buffer_add_moduleid (buf, domain, m_class_get_image (klass));
 		buffer_add_typeid (buf, domain, m_class_get_parent (klass));
 		if (m_class_get_rank (klass) || m_class_get_byval_arg (klass)->type == MONO_TYPE_PTR)
 			buffer_add_typeid (buf, domain, m_class_get_element_class (klass));
@@ -8800,8 +8807,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 			buffer_add_string (buf, f->name);
 			buffer_add_typeid (buf, domain, mono_class_from_mono_type_internal (f->type));
 			buffer_add_int (buf, f->type->attrs);
-			if (CHECK_PROTOCOL_VERSION(2, 61))
+			if (CHECK_PROTOCOL_VERSION(2, 61)){
 				buffer_add_int(buf, mono_class_field_is_special_static(f));
+			}
 			i ++;
 		}
 		g_assert (i == nfields);
@@ -10004,7 +10012,7 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 		if (start_frame < tls->frame_count)
 		{
-			m_dbgprot_buffer_add_byte_array (buf, (uint8_t *) &tls->frames [start_frame]->frame_addr, sizeof(gpointer));
+			m_dbgprot_buffer_add_byte_array (buf, (uint8_t *) tls->frames [start_frame]->frame_addr, sizeof(gpointer));
 		}
 		break;
 	}
@@ -10255,6 +10263,13 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		return ERR_ABSENT_INFORMATION;
 
 	switch (command) {
+	case MDBGPROT_CMD_STACK_FRAME_GET_LOCALS: {
+		//locals
+		header = mono_method_get_header_checked (frame->actual_method, error);
+		buffer_add_int (buf, header->num_locals);
+		mono_metadata_free_mh (header);
+		break;
+	}
 	case MDBGPROT_CMD_STACK_FRAME_GET_ARGUMENTS: {
 		buffer_add_int(buf, sig->hasthis ? sig->param_count + 1 : sig->param_count);
 		if (sig->hasthis)
@@ -10462,6 +10477,22 @@ array_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		return ERR_INVALID_OBJECT;
 
 	switch (command) {
+	case CMD_ARRAY_REF_GET_SIZE: {	
+		MonoTypeEnum type = m_class_get_byval_arg (m_class_get_element_class (arr->obj.vtable->klass))->type;
+		buffer_add_byte(buf, type);
+		esize = mono_array_element_size (arr->obj.vtable->klass);
+		buffer_add_int (buf, esize);
+		if (!arr->bounds) {
+			buffer_add_int (buf, arr->max_length);
+			buffer_add_int (buf, 0);
+		} else {
+			for (i = 0; i < m_class_get_rank (arr->obj.vtable->klass); ++i) {
+				buffer_add_int (buf, arr->bounds [i].length);
+				buffer_add_int (buf, arr->bounds [i].lower_bound);
+			}
+		}
+		}
+		break;
 	case CMD_ARRAY_REF_GET_TYPE: {
 			MonoTypeEnum type = m_class_get_byval_arg (m_class_get_element_class (arr->obj.vtable->klass))->type;
 			buffer_add_byte(buf, type);
@@ -11342,7 +11373,7 @@ bool mono_debugger_agent_receive_and_process_command (void)
 				buffer_reply_packet (id, err, &buf);
 			} else {
 				send_reply_packet (id, err, &buf);
-				//PRINT_DEBUG_MSG (1, "[dbg] Sent reply to %d [at=%lx].\n", id, (long)mono_100ns_ticks () / 10000);
+				PRINT_DEBUG_MSG (1, "[dbg] Sent reply to %d [at=%lx].\n", id, (long)mono_100ns_ticks () / 10000);
 			}
 		}
 
@@ -11379,7 +11410,6 @@ debugger_agent_enabled (void)
 void
 debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 {
-    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> START");
 	fn_table->parse_options = debugger_agent_parse_options;
 	fn_table->init = mono_debugger_agent_init_internal;
 	fn_table->breakpoint_hit = debugger_agent_breakpoint_hit;
@@ -11397,7 +11427,6 @@ debugger_agent_add_function_pointers(MonoComponentDebugger* fn_table)
 	fn_table->transport_handshake = debugger_agent_transport_handshake;
 	fn_table->send_enc_delta = send_enc_delta;
 	fn_table->debugger_enabled = debugger_agent_enabled;
-    	printf("\nVIKAS_MONO :: debugger_agent_add_function_pointers -> END");
 }
 
 #endif /* DISABLE_SDB */

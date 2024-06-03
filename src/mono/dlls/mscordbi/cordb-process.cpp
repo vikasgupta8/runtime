@@ -533,19 +533,8 @@ HRESULT CordbProcess::IsRunning(BOOL* pbRunning)
 HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueued)
 {
     // conn->process_packet_from_queue();
-        // Vikas impelemetation
-    ArrayList* pReceivedPacketsToProcess = conn->GetReceivedPacketsToProcess();
-    DWORD count = pReceivedPacketsToProcess->GetCount();
-    MdbgProtBuffer* req = (MdbgProtBuffer*)pReceivedPacketsToProcess->Get(count-1);
-    //printf("\nVIKAS_LOG :: CordbProcess::HasQueuedCallbacks count = %d",count);
-
-    if (req)
-       *pbQueued = true;
-
-    if (count == 10)
-    	*pbQueued = false;
-
-    LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - VIKAS IMPLEMENTED\n"));
+    *pbQueued = false;
+    LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - IMPLEMENTED\n"));
     return S_OK;
 }
 
@@ -761,6 +750,14 @@ CordbModule* CordbProcess::GetModule(int module_id)
 {
     CordbModule* ret = NULL;
     dbg_lock();    
+    for (DWORD i = 0; i < m_pModules->GetCount(); i++)
+    {
+        CordbModule* module = (CordbModule*)m_pModules->Get(i);
+	WCHAR name[2048];
+	ULONG32 name_len = 0;
+	module->GetName(2048, &name_len, name);
+    }
+
     for (DWORD i = 0; i < m_pModules->GetCount(); i++)
     {
         CordbModule* module = (CordbModule*)m_pModules->Get(i);

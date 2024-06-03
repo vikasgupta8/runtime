@@ -46,7 +46,6 @@ HRESULT STDMETHODCALLTYPE CordbEval::CallParameterizedFunction(ICorDebugFunction
     m_dbgprot_buffer_add_id(&localbuf, m_pThread->GetThreadId());
     m_dbgprot_buffer_add_int(&localbuf, 1);
     m_dbgprot_buffer_add_int(&localbuf, ((CordbFunction*)pFunction)->GetDebuggerId());
-    m_dbgprot_buffer_add_int(&localbuf, nArgs);
     for (ULONG32 i = 0; i < nArgs; i++)
     {
         CorElementType ty;
@@ -54,6 +53,7 @@ HRESULT STDMETHODCALLTYPE CordbEval::CallParameterizedFunction(ICorDebugFunction
         CordbContent* cc;
         cc = ((CordbValue*)ppArgs[i])->GetValue();
         m_dbgprot_buffer_add_byte(&localbuf, ty);
+	int debuggerId;
         switch (ty)
         {
             case ELEMENT_TYPE_BOOLEAN:
@@ -79,12 +79,16 @@ HRESULT STDMETHODCALLTYPE CordbEval::CallParameterizedFunction(ICorDebugFunction
             case ELEMENT_TYPE_CLASS:
             case ELEMENT_TYPE_SZARRAY:
             case ELEMENT_TYPE_STRING:
-                m_dbgprot_buffer_add_id(&localbuf, cc->intValue);
+		ICorDebugReferenceValue *pRefValue;
+		ppArgs[i]->QueryInterface(IID_ICorDebugReferenceValue, (LPVOID *) &pRefValue);
+        	debuggerId = ((CordbReferenceValue*)pRefValue)->GetDebuggerId();
+                m_dbgprot_buffer_add_id(&localbuf, debuggerId);
                 break;
             default:
                 return E_NOTIMPL;
         }
     }
+    m_dbgprot_buffer_add_int(&localbuf, nArgs);
     m_commandId = conn->SendEvent(MDBGPROT_CMD_SET_VM, MDBGPROT_CMD_VM_INVOKE_METHOD, &localbuf);
     m_dbgprot_buffer_free(&localbuf);
     conn->GetProcess()->AddPendingEval(this);
