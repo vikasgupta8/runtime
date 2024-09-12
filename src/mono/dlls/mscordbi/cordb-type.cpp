@@ -49,7 +49,8 @@ HRESULT STDMETHODCALLTYPE CordbType::GetClass(ICorDebugClass** ppClass)
     if (!m_pClass)
     {
         LOG((LF_CORDB, LL_INFO100000, "CordbType - GetClass - NO CLASS\n"));
-        return S_OK;
+        *ppClass = NULL;
+        return CORDBG_E_CLASS_NOT_LOADED;
     }
     m_pClass->QueryInterface(IID_ICorDebugClass, (void**)ppClass);
     return S_OK;

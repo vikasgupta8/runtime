@@ -278,7 +278,7 @@ HRESULT CordbProcess::GetHandle(HPROCESS* phProcessHandle)
 
 HRESULT CordbProcess::GetThread(DWORD dwThreadId, ICorDebugThread** ppThread)
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - VIKAS IMPLEMENTED\n"));
+    LOG((LF_CORDB, LL_INFO100000, "CordbProcess - GetThread - IMPLEMENTED\n"));
     HRESULT hr = S_OK;
 
     CordbThread* thread    = FindThread(dwThreadId);
@@ -534,6 +534,14 @@ HRESULT CordbProcess::HasQueuedCallbacks(ICorDebugThread* pThread, BOOL* pbQueue
 {
     // conn->process_packet_from_queue();
     *pbQueued = false;
+
+    dbg_lock();
+    if (m_pThreads->GetCount() == 0)
+    {
+	*pbQueued = true;
+    }
+    dbg_unlock();
+
     LOG((LF_CORDB, LL_INFO1000000, "CordbProcess - HasQueuedCallbacks - IMPLEMENTED\n"));
     return S_OK;
 }

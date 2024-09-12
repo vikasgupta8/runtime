@@ -7407,9 +7407,13 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		wait_for_suspend ();
 		break;
 	case CMD_VM_RESUME:
-#ifndef HOST_WASI	
-		if (suspend_count == 0) {
-			if (agent_config.defer && !agent_config.suspend)
+#ifndef HOST_WASI
+               if (agent_config.defer && !agent_config.suspend) {
+#if defined (HOST_POWERPC64)
+                       if (suspend_count == 1)
+#else
+                       if (suspend_count == 0)
+#endif		
 				// Workaround for issue in debugger-libs when running in defer attach mode.
 				break;
 			else
@@ -8698,7 +8702,7 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		buffer_add_string (buf, name);
 		g_free (name);
 		buffer_add_assemblyid (buf, domain, m_class_get_image (klass)->assembly);
-		//buffer_add_moduleid (buf, domain, m_class_get_image (klass));
+		buffer_add_moduleid (buf, domain, m_class_get_image (klass));
 		buffer_add_typeid (buf, domain, m_class_get_parent (klass));
 		if (m_class_get_rank (klass) || m_class_get_byval_arg (klass)->type == MONO_TYPE_PTR)
 			buffer_add_typeid (buf, domain, m_class_get_element_class (klass));
@@ -10696,13 +10700,21 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	case CMD_OBJECT_REF_GET_VALUES_BY_FIELD_TOKEN: {
 		len = 1;
 		i = 0;
-		MonoClass* klass =  decode_typeid (p, &p, end, NULL, &err);
+		int class_token =  decode_int (p, &p, end);
 		int field_token =  decode_int (p, &p, end);
 		gpointer iter = NULL;
 
-		while ((f = mono_class_get_fields_internal (klass, &iter))) {
-			if (mono_class_get_field_token (f) == field_token)
+		for (k = obj_type; k; k = m_class_get_parent (k)) {
+			if (m_class_get_type_token (k) == class_token) {
+				break;
+			}
+			i++;
+		}
+
+		while ((f = mono_class_get_fields_internal (k, &iter))) {
+			if (mono_class_get_field_token (f) == field_token) {
 				goto get_field_value;
+			}
 		}
 		goto invalid_fieldid;
 	}

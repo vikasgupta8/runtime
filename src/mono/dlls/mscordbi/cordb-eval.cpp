@@ -123,8 +123,32 @@ HRESULT STDMETHODCALLTYPE CordbEval::NewParameterizedObjectNoConstructor(ICorDeb
                                                                          ULONG32         nTypeArgs,
                                                                          ICorDebugType*  ppTypeArgs[])
 {
-    LOG((LF_CORDB, LL_INFO100000, "CordbEval - NewParameterizedObjectNoConstructor - NOT IMPLEMENTED\n"));
-    return E_NOTIMPL;
+    //fprintf(stderr,"\nVIKAS_MONO :: CordbEval::NewParameterizedObjectNoConstructor -> NOT IMPLEMENTED");
+    //LOG((LF_CORDB, LL_INFO100000, "CordbEval - NewParameterizedObjectNoConstructor - NOT IMPLEMENTED\n"));
+    HRESULT hr = S_OK;
+    EX_TRY
+    {
+        conn->GetProcess()->Stop(false);
+        MdbgProtBuffer localbuf;
+        m_dbgprot_buffer_init(&localbuf, 128);
+        m_dbgprot_buffer_add_id(&localbuf, m_pThread->GetThreadId());
+        int cmdId = conn->SendEvent(MDBGPROT_CMD_SET_THREAD, MDBGPROT_CMD_THREAD_GET_APPDOMAIN, &localbuf);
+        m_dbgprot_buffer_free(&localbuf);
+
+        ReceivedReplyPacket* received_reply_packet = conn->GetReplyWithError(cmdId);
+        CHECK_ERROR_RETURN_FALSE(received_reply_packet);
+        MdbgProtBuffer* pReply = received_reply_packet->Buffer();
+        int domainId = m_dbgprot_decode_id(pReply->p, &pReply->p, pReply->end);
+
+	m_dbgprot_buffer_init(&localbuf, 128);
+        m_dbgprot_buffer_add_id(&localbuf, domainId);
+    	m_dbgprot_buffer_add_int(&localbuf, nTypeArgs);
+        this->m_commandId = conn->SendEvent(MDBGPROT_CMD_SET_APPDOMAIN, MDBGPROT_CMD_APPDOMAIN_CREATE_BYTE_ARRAY, &localbuf);
+        m_dbgprot_buffer_free(&localbuf);
+        conn->GetProcess()->AddPendingEval(this);
+    }
+    EX_CATCH_HRESULT(hr);
+    return hr;
 }
 
 HRESULT STDMETHODCALLTYPE CordbEval::NewParameterizedArray(ICorDebugType* pElementType,
